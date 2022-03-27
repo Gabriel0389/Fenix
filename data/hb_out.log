@@ -1,0 +1,54 @@
+Application Internal Error - /github/fenix/fenix
+Terminated at: 2022-03-01 13:12:06
+Erro irrecuper vel 9003: Muitas chamadas recursivas ao manipulador de erros
+Called from (b)EVENTSTATE(925)
+Called from HB_GTALERT(0)
+Called from ALERT(0)
+Called from MACROERRO(836) in src/fenix.prg
+Called from (b)ERRORSYS(475) in src/fenix.prg
+Called from (b)EVENTSTATE(925)
+Called from HB_GTALERT(0)
+Called from ALERT(0)
+Called from MACROERRO(836) in src/fenix.prg
+Called from (b)ERRORSYS(475) in src/fenix.prg
+Called from (b)EVENTSTATE(925)
+Called from HB_GTALERT(0)
+Called from ALERT(0)
+Called from MACROERRO(836) in src/fenix.prg
+Called from (b)ERRORSYS(475) in src/fenix.prg
+Called from (b)EVENTSTATE(925)
+Called from HB_GTALERT(0)
+Called from ALERT(0)
+Called from MACROERRO(836) in src/fenix.prg
+Called from (b)ERRORSYS(475) in src/fenix.prg
+Called from (b)EVENTSTATE(925)
+Called from HB_GTALERT(0)
+Called from ALERT(0)
+Called from MACROERRO(836) in src/fenix.prg
+Called from (b)ERRORSYS(475) in src/fenix.prg
+Called from (b)EVENTSTATE(925)
+Called from HB_GTALERT(0)
+Called from ALERT(0)
+Called from MACROERRO(836) in src/fenix.prg
+Called from (b)ERRORSYS(475) in src/fenix.prg
+Called from (b)EVENTSTATE(925)
+Called from HB_GTALERT(0)
+Called from ALERT(0)
+Called from MACROERRO(836) in src/fenix.prg
+Called from (b)ERRORSYS(475) in src/fenix.prg
+Called from (b)EVENTSTATE(925)
+Called from HB_GTALERT(0)
+Called from ALERT(0)
+Called from MACROERRO(836) in src/fenix.prg
+Called from (b)ERRORSYS(475) in src/fenix.prg
+Called from (b)EVENTSTATE(925)
+Called from INKEY(0)
+Called from GETREADER(152)
+Called from READMODAL(116)
+Called from CLIENTESINCLUSAO(958) in src/cadastro.prg
+Called from (b)MONTA_MENU(31) in src/menu.prg
+Called from HBMENUSYS:EXECUTE(517)
+Called from HBMENUSYS:MODAL(298)
+Called from MENUMODAL(62)
+Called from MAIN$(95) in src/fenix.prg
+------------------------------------------------------------------------

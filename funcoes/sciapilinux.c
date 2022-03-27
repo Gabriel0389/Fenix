@@ -9,37 +9,38 @@
 #endif
 
 // synonymn for MS_* 
-	HB_FUNC_TRANSLATE(TRIM,    	RTRIM)
-	HB_FUNC_TRANSLATE(MS_TRIM,    RTRIM)
-	HB_FUNC_TRANSLATE(MS_LTRIM,   LTRIM)
-	HB_FUNC_TRANSLATE(MS_STRZERO, STRZERO)
-	HB_FUNC_TRANSLATE(MS_LEN,     LEN)
+	HB_FUNC_TRANSLATE(TRIM,    	   RTRIM)
+	HB_FUNC_TRANSLATE(MS_TRIM,       RTRIM)
+	HB_FUNC_TRANSLATE(MS_LTRIM,      LTRIM)
+	HB_FUNC_TRANSLATE(MS_STRZERO,    STRZERO)
+	HB_FUNC_TRANSLATE(MS_LEN,        LEN)
 	HB_FUNC_TRANSLATE(MS_CAPITALIZE, CAPITALIZE)
+	HB_FUNC_TRANSLATE(MS_TELA,       TELA)
 
-/*-----------------------------------------------------------------------------------------------*/	
+//==================================================================================================
 
 /*
 static size_t strlen( char s[] )
 {
 	int i = 0;
-	while(s[i] != '\0' )
-	{
+	while(s[i] != '\0' ){
 		i++;
 	}
 	return i;
 }
 */
 
-/*-----------------------------------------------------------------------------------------------*/	
+//==================================================================================================
 
-char *chr(MS_SIZE n){
-	char *ch = (char *)malloc(sizeof(char*));
-	ch[1]       = '\0';
-	memset(ch, n, 1);	   
+char *chr( MS_SIZE n )
+{
+   char *ch = (char *)malloc(sizeof(char*));
+   ch[1]    = '\0';
+   memset(ch, n, 1);
    return(ch);
 }
- 
-/*-----------------------------------------------------------------------------------------------*/	
+
+//==================================================================================================
 
 void *malloc_s(size_t size) {
     void *p = malloc(size);
@@ -79,10 +80,10 @@ char *space(int x, char ch)
 
 //=================================================================
 
-void *spaceset(size_t size, char ch ) {
+void *spaceset(size_t size, char ch)
+{
     return(memset((char *)malloc_s(size * sizeof(char *)), ch, size));
 }
-
 
 //=================================================================
 
@@ -208,7 +209,7 @@ char *strsubstr(TString str, size_t ini, size_t fim) {
     return (NULL);
 }
 
-/*-----------------------------------------------------------------------------------------------*/	
+/*-----------------------------------------------------------------------------------------------*/
 
 static char *replicate(MS_CHAR *str, MS_SIZE vezes)
 {
@@ -217,7 +218,7 @@ static char *replicate(MS_CHAR *str, MS_SIZE vezes)
 	MS_CHAR *ptr   = (MS_CHAR*)malloc(tam * sizeof(MS_CHAR)); // (MS_CHAR*)malloc(tam+1);
 	MS_SIZE x;
 	MS_SIZE y;
-		
+
 	if (str){
 		if (ptr){
 			for (x = 0; x < tam;){
@@ -230,12 +231,185 @@ static char *replicate(MS_CHAR *str, MS_SIZE vezes)
 	ptr[vezes] = '\0';
 	if(ptr)
 		return ptr;
-	return NULL;		
+	return NULL;
 }
 
-/*-----------------------------------------------------------------------------------------------*/	
- 
+//==================================================================================================
+
 HB_FUNC( MS_CLS )
+{
+	HB_TCHAR	*szText;
+	HB_SIZE  nTextLen;
+	HB_SIZE  nLen;
+	MS_INT  	iRow;
+	MS_INT  	iCol;
+	MS_INT  	iMaxRow;
+	MS_INT  	iMaxCol;	
+   
+   if(hb_parclen(2) == 0){
+		szText   = chr(32);
+		nTextLen = (HB_SIZE)strlen(szText);
+		nLen     = (HB_SIZE)szText;
+	}
+	else{		
+		szText   = hb_parc(2);
+		nTextLen = hb_parclen(2);
+		nLen     = hb_parclen(2);
+	}
+		
+   long lDelay = hb_parnldef( 3, 0 );
+   hb_gtSetPos(0 , 0);
+	hb_gtGetPos(&iRow, &iCol);
+	
+   if(HB_ISNUM(3))
+      iRow = 0; // hb_parni( 3 );
+   
+	if(HB_ISNUM(4))
+      iCol = 0; // hb_parni( 4 );
+   
+	iMaxRow = hb_gtMaxRow();
+   iMaxCol = hb_gtMaxCol();
+   
+	if( iRow >= 0 && iCol >= 0 && iRow <= iMaxRow && iCol <= iMaxCol)
+   {
+		MS_SIZE      iTop    = 0;
+		MS_SIZE      iLeft   = 0;
+		MS_SIZE      iBottom = iMaxRow;
+		MS_SIZE      iRight  = iMaxCol;		
+	   MS_SIZE      size    = (HB_SIZE)(((iBottom-iTop)+1) * ((iRight-iLeft)+1));
+		MS_CHAR      *buffer = (MS_CHAR*)calloc(size, sizeof(buffer));
+		PHB_CODEPAGE cdp     = hb_gtHostCP();			
+      HB_SIZE      nIndex  = 0;
+      MS_SIZE      iColor  = hb_parni(1); 
+		HB_WCHAR     wc;
+		
+		if( iColor == 0)
+			iColor = hb_gtGetCurrColor();
+
+      if( nLen > ( HB_SIZE ) ( iMaxRow - iRow + 1 ) )
+         nLen = (iMaxRow - iRow + 1);
+
+      hb_gtBeginWrite();
+		
+		for(MS_SIZE n=0; n<size;){
+			for (HB_SIZE y=0; y<nTextLen; y++, n++){
+				buffer[n] = szText[y];
+				if( n == size)
+					break;
+			}
+			buffer[size]='\0';
+		}
+
+		nLen = size;
+		
+      while( nLen-- ){
+			if( HB_CDPCHAR_GET( cdp, buffer, size, &nIndex, &wc ))
+				hb_gtPutChar( iRow, iCol++, iColor, 0, wc );
+         else
+            break;
+
+			if( iCol > iMaxCol){
+				iCol = 0;
+				iRow++;
+			}
+				
+         if( lDelay ){
+            hb_gtEndWrite();
+            hb_idleSleep( ( double ) lDelay / 1000 );
+            hb_gtBeginWrite();
+			}
+		}			
+      hb_gtEndWrite();      
+      hb_retc(buffer);
+      free(buffer);
+      return;      
+	}
+   else{	
+		hb_errRT_BASE_SubstR( EG_ARG, 1111, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
+		return;
+	}   
+	hb_retc_null();
+   return;
+}	
+
+HB_FUNC( TELA )
+{
+   MS_SIZE        iColor   = hb_parni(1); 
+   MS_INT  	      iCol     = 0;
+   MS_INT  	      iRow     = 0;
+   MS_INT  	      iLeft    = 0;
+	MS_INT  	      iTop     = 0;
+   MS_INT         iBottom  = hb_gtMaxRow();
+   MS_INT         iRight   = hb_gtMaxCol();
+	HB_SIZE        nTextLen;
+	HB_SIZE        nLen;
+   MS_SIZE        size    = (HB_SIZE)(((iBottom-iTop)+1) * ((iRight-iLeft)+1));
+	MS_CHAR        *buffer = (MS_CHAR*)calloc(size, sizeof(buffer));
+   HB_TCHAR	      *szText = (MS_CHAR*)calloc(size, sizeof(buffer));
+	PHB_CODEPAGE   cdp     = hb_gtHostCP();			
+   HB_SIZE        nIndex  = 0;
+	HB_WCHAR       wc;
+
+   if(!HB_ISNUM(1))
+      if( iColor == 0)
+         iColor = hb_gtGetCurrColor();
+      
+   if(HB_ISCHAR(2))
+   {   
+      if(hb_parclen(2) == 0)                 // panofundo
+      {
+         szText   = chr(32);                 // espaco em branco
+         nTextLen = (HB_SIZE)strlen(szText);
+         nLen     = (HB_SIZE)szText;
+      }else{		
+         szText   = hb_parc(2);
+         nTextLen = hb_parclen(2);
+         nLen     = hb_parclen(2);
+      }
+      if(HB_ISNUM(3)) iTop    = hb_parni(3);
+      if(HB_ISNUM(4)) iLeft   = hb_parni(4);
+      if(HB_ISNUM(5)) iBottom = hb_parni(5);
+      if(HB_ISNUM(6)) iRight  = hb_parni(6);   
+      iCol                    = iLeft;
+      iRow                    = iTop;   
+      hb_gtSetPos(iTop, iLeft);
+      hb_gtGetPos(&iTop, &iLeft);
+
+      nLen = size = (HB_SIZE)(((iBottom-iTop)+1) * ((iRight-iLeft)+1));
+      buffer = (MS_CHAR*)calloc(size, sizeof(buffer));		
+      hb_gtBeginWrite();
+      
+      for(HB_SIZE n=0; n<size;){
+         for(HB_SIZE y=0; y<nTextLen; y++, n++){
+            buffer[n] = szText[y];
+            if( n == size) break;
+         }
+      }
+      buffer[size]='\0';
+      
+      while(nLen--)
+      {
+         if( HB_CDPCHAR_GET( cdp, buffer, size, &nIndex, &wc ))
+            hb_gtPutChar( iRow, iCol++, iColor, 0, wc );
+         else break;
+
+         if( iCol > iRight){
+            iCol = iLeft;
+            iRow++;
+         }
+      }			
+      hb_gtEndWrite();      
+      hb_retc(buffer);
+      free(buffer);
+      return;
+   }
+   free(buffer);
+   hb_errRT_BASE_SubstR( EG_ARG, 1111, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
+   hb_retc_null();
+   return;
+}	
+
+HB_FUNC( MS_CHAR )
 {
 	HB_TCHAR	*szText;
 	HB_SIZE  nTextLen;
@@ -287,8 +461,7 @@ HB_FUNC( MS_CLS )
       if( nLen > ( HB_SIZE ) ( iMaxRow - iRow + 1 ) )
          nLen = (iMaxRow - iRow + 1);
 
-      hb_gtBeginWrite();
-		
+      hb_gtBeginWrite();		
 		for(MS_SIZE n=0; n<size;){
 			for (HB_SIZE y=0; y<nTextLen; y++, n++){
 				buffer[n] = szText[y];
@@ -298,55 +471,248 @@ HB_FUNC( MS_CLS )
 			buffer[size]='\0';   			
 		}
 
-		nLen = size;
-		
-      while( nLen-- ){
-			if( HB_CDPCHAR_GET( cdp, buffer, size, &nIndex, &wc ))
-				hb_gtPutChar( iRow, iCol++, iColor, 0, wc );
-         else
-            break;
+      if( iTop && iLeft && iBottom && iRight )
+      {
+         const char * pszBox   = buffer;
 
-			if( iCol > iMaxCol){
-				iCol = 0;
-				iRow++;
-			}
-				
-         if( lDelay ){
-            hb_gtEndWrite();
-            hb_idleSleep( ( double ) lDelay / 1000 );
-            hb_gtBeginWrite();
-			}
-		}			
+         if( pszBox )
+         {
+            hb_gtDrawBox(iTop,
+                         iLeft,
+                         iBottom,
+                         iRight,
+                         pszBox,
+                         iColor );
+         }
+      }
       hb_gtEndWrite();      
-      hb_retc(buffer);
-      free(buffer);
-      return;      
-	}
-   else{	
-		hb_errRT_BASE_SubstR( EG_ARG, 1111, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
-		return;
-	}   
+   }
 	hb_retc_null();
    return;
 }	
 
-/*-----------------------------------------------------------------------------------------------*/	
+/*
+ * DispBox() function
+ */
 
+#include "hbapi.h"
+#include "hbapigt.h"
+#include "hbapiitm.h"
+
+HB_FUNC( DISPBOX )
+{
+   PHB_ITEM pTop    = hb_param( 1, HB_IT_NUMERIC );
+   PHB_ITEM pLeft   = hb_param( 2, HB_IT_NUMERIC );
+   PHB_ITEM pBottom = hb_param( 3, HB_IT_NUMERIC );
+   PHB_ITEM pRight  = hb_param( 4, HB_IT_NUMERIC );
+
+   if( pTop && pLeft && pBottom && pRight )
+   {
+      const char * pszBox   = hb_parc( 5 );
+      const char * pszColor = hb_parc( 6 );
+
+      if( pszBox )
+      {
+         int iColor;
+
+         if( pszColor )
+            iColor = hb_gtColorToN( pszColor );
+         else if( HB_ISNUM( 6 ) )
+            iColor = hb_parni( 6 );
+         else
+            iColor = -1;
+         hb_gtBoxEx( hb_itemGetNI( pTop ),
+                     hb_itemGetNI( pLeft ),
+                     hb_itemGetNI( pBottom ),
+                     hb_itemGetNI( pRight ),
+                     pszBox,
+                     iColor );
+      }
+      else
+      {
+         char szOldColor[ HB_CLRSTR_LEN ];
+
+         if( pszColor )
+         {
+            hb_gtGetColorStr( szOldColor );
+            hb_gtSetColorStr( pszColor );
+         }
+
+         if( hb_parni( 5 ) == 2 )
+            hb_gtBoxD( hb_itemGetNI( pTop ),
+                       hb_itemGetNI( pLeft ),
+                       hb_itemGetNI( pBottom ),
+                       hb_itemGetNI( pRight ) );
+
+         else
+            hb_gtBoxS( hb_itemGetNI( pTop ),
+                       hb_itemGetNI( pLeft ),
+                       hb_itemGetNI( pBottom ),
+                       hb_itemGetNI( pRight ) );
+
+         if( pszColor )
+            hb_gtSetColorStr( szOldColor );
+      }
+   }
+}
+
+//==================================================================================================
+
+HB_FUNC( HB_DISPBOX )
+{
+   PHB_ITEM pTop    = hb_param( 1, HB_IT_NUMERIC );
+   PHB_ITEM pLeft   = hb_param( 2, HB_IT_NUMERIC );
+   PHB_ITEM pBottom = hb_param( 3, HB_IT_NUMERIC );
+   PHB_ITEM pRight  = hb_param( 4, HB_IT_NUMERIC );
+
+   if( pTop && pLeft && pBottom && pRight )
+   {
+      const char * pszBox   = hb_parc( 5 );
+      const char * pszColor = hb_parc( 6 );
+      int          iColor   = pszColor ? hb_gtColorToN( pszColor ) : hb_parnidef( 6, -1 );
+
+      hb_gtDrawBox( hb_itemGetNI( pTop ),
+                    hb_itemGetNI( pLeft ),
+                    hb_itemGetNI( pBottom ),
+                    hb_itemGetNI( pRight ),
+                    pszBox,
+                    iColor );
+   }
+}
+
+/*-----------------------------------------------------------------------------------------------
+ * hb_default() and __defaultNIL() functions
+*/
+
+#include "hbapi.h"
+#include "hbapiitm.h"
+
+typedef enum
+{
+   HB_IT_U,
+   HB_IT_N,
+   HB_IT_C,
+   HB_IT_L,
+   HB_IT_T,
+   HB_IT_E,
+   HB_IT_H,
+   HB_IT_A,
+   HB_IT_O,
+   HB_IT_P,
+} HB_IT_BASIC;
+
+static HB_IT_BASIC s_hb_itemTypeBasic( PHB_ITEM pItem )
+{
+   switch( HB_ITEM_TYPE( pItem ) )
+   {
+      case HB_IT_ARRAY:
+         return hb_arrayIsObject( pItem ) ? HB_IT_O : HB_IT_A;
+
+      case HB_IT_BLOCK:
+      case HB_IT_SYMBOL:
+         return HB_IT_E;
+
+      case HB_IT_DATE:
+      case HB_IT_TIMESTAMP:
+         return HB_IT_T;
+
+      case HB_IT_LOGICAL:
+         return HB_IT_L;
+
+      case HB_IT_INTEGER:
+      case HB_IT_LONG:
+      case HB_IT_DOUBLE:
+         return HB_IT_N;
+
+      case HB_IT_STRING:
+      case HB_IT_MEMO:
+         return HB_IT_C;
+
+      case HB_IT_HASH:
+         return HB_IT_H;
+
+      case HB_IT_POINTER:
+         return HB_IT_P;
+   }
+   return HB_IT_U;
+}
+
+
+HB_FUNC( HB_DEFAULT )
+{
+   /*
+	PHB_ITEM pDefault = hb_param( 2, HB_IT_ANY );
+
+   if( pDefault && s_hb_itemTypeBasic( hb_param( 1, HB_IT_ANY ) ) != s_hb_itemTypeBasic( pDefault ))
+      hb_itemParamStore( 1, pDefault );   
+   */
+   
+   PHB_ITEM pParam   = hb_param(1, HB_IT_ANY);
+   PHB_ITEM pDefault = hb_param(2, HB_IT_ANY);
+
+   if( pDefault && s_hb_itemTypeBasic( pParam ) != s_hb_itemTypeBasic( pDefault ))
+	{
+		hb_itemParamStore( 1, pDefault );
+		pParam = pDefault;
+	}
+	hb_itemReturn( pParam );
+}
+
+HB_FUNC( HB_DEFAULTVALUE )
+{
+   PHB_ITEM pParam   = hb_param(1, HB_IT_ANY);
+   PHB_ITEM pDefault = hb_param(2, HB_IT_ANY);
+
+   if( pDefault && s_hb_itemTypeBasic( pParam ) != s_hb_itemTypeBasic( pDefault ))
+		pParam = pDefault;
+   hb_itemReturn( pParam );
+}
+
+/* For compatibility with legacy DEFAULT ... TO ... command.
+   Not recommended for new code. */
+HB_FUNC( __DEFAULTNIL )
+{
+   PHB_ITEM pParam   = hb_param(1, HB_IT_ANY);
+   PHB_ITEM pDefault = hb_param(2, HB_IT_ANY);
+   if( hb_pcount() >= 2 && HB_IS_NIL( hb_param( 1, HB_IT_ANY))){
+      hb_itemParamStore( 1, hb_param( 2, HB_IT_ANY ));
+      hb_itemReturn( pDefault );
+   }
+   hb_itemReturn( pParam );   
+}
+
+HB_FUNC( HB_DEFAULTNIL )
+{
+   PHB_ITEM pParam   = hb_param(1, HB_IT_ANY);
+   PHB_ITEM pDefault = hb_param(2, HB_IT_ANY);
+   if( hb_pcount() >= 2 && HB_IS_NIL( hb_param( 1, HB_IT_ANY))){
+      hb_itemParamStore( 1, hb_param( 2, HB_IT_ANY ));
+      hb_itemReturn( pDefault );
+   }  
+   hb_itemReturn( pParam );
+}
+
+/*-----------------------------------------------------------------------------------------------
+ms_replicate(<string>, <nvezes>)
+ms_replicate("=", 80)
+-----------------------------------------------------------------------------------------------*/
 HB_FUNC( MS_REPLICATE )
 {
 	int iParams = hb_pcount();
-	
-	if( iParams == 2 && HB_ISCHAR( 1 ) && HB_ISNUM( 2 ) )
+
+//	if( iParams == 2 && HB_ISCHAR( 1 ) && HB_ISNUM( 2 ) )
+	if(hb_pcount() == 2 && HB_ISCHAR(1) && HB_ISNUM(2))
    {
-		char *szText = replicate( (char*)hb_parc( 1 ), hb_parni( 2 ) );
-		hb_retc( szText );
+		char *szText = replicate((char*)hb_parc(1), hb_parni(2));
+		hb_retc(szText);
+		free(szText);
 		return;
 	}
 	else
-   {	
+   {
 		hb_errRT_BASE_SubstR( EG_ARG, 1111, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
 		return;
-	}	
+	}
 }
 
 /*-----------------------------------------------------------------------------------------------*/	
@@ -385,20 +751,23 @@ HB_FUNC( MS_FOR )
 	return;
 }
 
-/*-----------------------------------------------------------------------------------------------*/	
-
-HB_FUNC(MS_CLEAR){
-	MS_CHAR	*string 	= (char*) hb_parc(2);	
+/*-----------------------------------------------------------------------------------------------
+ms_clear(<color>, <string>)
+ms_clear(31, "░▒▓")
+-----------------------------------------------------------------------------------------------*/
+HB_FUNC(MS_CLEAR)
+{
+	MS_CHAR	*string 	= (char*) hb_parc(2);
 	MS_INT	x 			= strlen(string);
 	MS_INT	iTop    	= 0;
 	MS_INT 	iLeft   	= 0;
 	MS_INT 	iBottom 	= hb_gtMaxRow();
-	MS_INT	iRight  	= hb_gtMaxCol();	
+	MS_INT	iRight  	= hb_gtMaxCol();
 	MS_INT	size 		= (MS_INT)(((iBottom-iTop)) * ((iRight-iLeft)));
-	MS_CHAR	*buffer 	= (MS_CHAR*)malloc(size);	
-	MS_INT	n;	
+	MS_CHAR	*buffer 	= (MS_CHAR*)malloc(size);
+	MS_INT	n;
 	MS_INT 	y;
-		
+
 	for (n=0; n<size;){
 		for (y=0; y<x; y++, n++){
 			buffer[n] = string[y];
@@ -1112,38 +1481,27 @@ static void hb_inkeySetTextKeys( const char * pszText, HB_SIZE nSize, HB_BOOL fI
    }
 }
 
-/*-----------------------------------------------------------------------------------------------*/	
+/*-----------------------------------------------------------------------------------------------*/
 
 HB_FUNC( INKEY )
 {
    int iPCount = hb_pcount();
 
-   hb_retni( 
+   hb_retni(
 					hb_inkey( iPCount == 1 || ( iPCount > 1 && HB_ISNUM( 1 )),
-               hb_parnd( 1 ), 
+               hb_parnd( 1 ),
 					hb_parnidef( 2, hb_setGetEventMask()))
 				);
 }
 
-/*-----------------------------------------------------------------------------------------------*/	
-
-HB_FUNC( __KEYBOARD )
-{
-   /* Clear the typeahead buffer without reallocating the keyboard buffer */
-   hb_inkeyReset();
-
-   if( HB_ISCHAR( 1 ) )
-      hb_inkeySetText( hb_parc( 1 ), hb_parclen( 1 ) );
-}
-
-/*-----------------------------------------------------------------------------------------------*/	
+/*-----------------------------------------------------------------------------------------------*/
 
 HB_FUNC( HB_KEYCLEAR )
 {
    hb_inkeyReset();
 }
 
-/*-----------------------------------------------------------------------------------------------*/	
+/*-----------------------------------------------------------------------------------------------*/
 
 HB_FUNC( HB_KEYPUT )
 {
@@ -2886,7 +3244,7 @@ char * hb_verCompiler( void )
    #elif defined( __EMX__ )
       pszName = "EMX GNU C";
    #else
-      pszName = "GNU C";
+      pszName = "GCC/GNU C";
    #endif
 
    #if defined( __cplusplus )
@@ -2975,6 +3333,50 @@ char * hb_verCompiler( void )
    return pszCompiler;
 }
 
+/* NOTE: The caller must free the returned buffer. [vszakats] */
+
+/* NOTE:
+   CA-Cl*pper 5.2e returns: "Clipper (R) 5.2e Intl. (x216)  (1995.02.07)"
+   CA-Cl*pper 5.3b returns: "Clipper (R) 5.3b Intl. (Rev. 338) (1997.04.25)"
+ */
+
+/*
+char * hb_verHarbour( void )
+{
+   char * pszVersion;
+   char szDateRaw[ 11 ];
+   char szDate[ 17 ];
+
+   HB_TRACE( HB_TR_DEBUG, ( "hb_verHarbour()" ) );
+
+   hb_snprintf( szDateRaw, sizeof( szDateRaw ), "%d", hb_verCommitRev() );
+
+   szDate[ 0 ] = '2';
+   szDate[ 1 ] = '0';
+   szDate[ 2 ] = szDateRaw[ 0 ];
+   szDate[ 3 ] = szDateRaw[ 1 ];
+   szDate[ 4 ] = '-';
+   szDate[ 5 ] = szDateRaw[ 2 ];
+   szDate[ 6 ] = szDateRaw[ 3 ];
+   szDate[ 7 ] = '-';
+   szDate[ 8 ] = szDateRaw[ 4 ];
+   szDate[ 9 ] = szDateRaw[ 5 ];
+   szDate[ 10 ] = ' ';
+   szDate[ 11 ] = szDateRaw[ 6 ];
+   szDate[ 12 ] = szDateRaw[ 7 ];
+   szDate[ 13 ] = ':';
+   szDate[ 14 ] = szDateRaw[ 8 ];
+   szDate[ 15 ] = szDateRaw[ 9 ];
+   szDate[ 16 ] = '\0';
+
+   pszVersion = ( char * ) hb_xgrab( 80 );
+   hb_snprintf( pszVersion, 80, "Harbour %d.%d.%d%s (%s) (%s)",
+                HB_VER_MAJOR, HB_VER_MINOR, HB_VER_RELEASE, HB_VER_STATUS,
+                hb_verCommitIDShort(), szDate );
+
+   return pszVersion;
+}
+*/
 
 char * hb_verPCode( void )
 {
@@ -2995,3 +3397,1488 @@ char * hb_verBuildDate( void )
    return ( char * ) hb_xgrabz( 1 );
 }
 #endif
+
+
+/*
+ * hb_StrFormat() function
+ *
+ * Copyright 2008 Mindaugas Kavaliauskas <dbtopas at dbtopas.lt>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2, or (at your option)
+ * any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; see the file LICENSE.txt.  If not, write to
+ * the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ * Boston, MA 02110-1301 USA (or visit https://www.gnu.org/licenses/).
+ *
+ * As a special exception, the Harbour Project gives permission for
+ * additional uses of the text contained in its release of Harbour.
+ *
+ * The exception is that, if you link the Harbour libraries with other
+ * files to produce an executable, this does not by itself cause the
+ * resulting executable to be covered by the GNU General Public License.
+ * Your use of that executable is in no way restricted on account of
+ * linking the Harbour library code into it.
+ *
+ * This exception does not however invalidate any other reasons why
+ * the executable file might be covered by the GNU General Public License.
+ *
+ * This exception applies only to the code released by the Harbour
+ * Project under the name Harbour.  If you copy code from other
+ * Harbour Project or Free Software Foundation releases into a copy of
+ * Harbour, as the General Public License permits, the exception does
+ * not apply to the code that you add in this way.  To avoid misleading
+ * anyone as to the status of such modified files, you must delete
+ * this exception notice from them.
+ *
+ * If you write modifications of your own for Harbour, it is your choice
+ * whether to permit this exception to apply to your modifications.
+ * If you do not wish that, delete this exception notice.
+ *
+ */
+
+#include "hbapi.h"
+#include "hbapiitm.h"
+#include "hbapierr.h"
+
+typedef struct
+{
+   char *  pData;
+   HB_SIZE nLen;
+   HB_SIZE nMax;
+} BUFFERTYPE;
+
+static void bufadd( BUFFERTYPE * pBuf, const char * pAdd, HB_SIZE nLen )
+{
+   if( pBuf->nLen + nLen >= pBuf->nMax )
+   {
+      pBuf->nMax += ( pBuf->nMax >> 1 ) + nLen;
+      pBuf->pData = ( char * ) hb_xrealloc( pBuf->pData, pBuf->nMax );
+   }
+   memcpy( pBuf->pData + pBuf->nLen, pAdd, nLen );
+   pBuf->nLen += nLen;
+   pBuf->pData[ pBuf->nLen ] = '\0';
+}
+
+static void hb_itemHexStr( PHB_ITEM pItem, char * pStr, HB_BOOL fUpper )
+{
+   HB_MAXUINT nValue, nTmp;
+   int iLen;
+
+   nValue = nTmp = hb_itemGetNInt( pItem );
+
+   iLen = 0;
+   do
+   {
+      ++iLen;
+      nTmp >>= 4;
+   }
+   while( nTmp );
+
+   pStr[ iLen ] = '\0';
+   do
+   {
+      int iDigit = ( int ) ( nValue & 0x0F );
+      pStr[ --iLen ] = ( char ) ( iDigit + ( iDigit < 10 ? '0' :
+                                             ( fUpper ? 'A' : 'a' ) - 10 ) );
+      nValue >>= 4;
+   }
+   while( iLen );
+}
+
+PHB_ITEM hb_strFormat( PHB_ITEM pItemReturn, PHB_ITEM pItemFormat, int iCount, PHB_ITEM * pItemArray )
+{
+   BUFFERTYPE  buffer;
+   PHB_ITEM    pItem;
+   const char  *pFmt, *pFmtEnd, *pFmtSave;
+   int         i, iParam, iParamNo, iWidth, iDec;
+   HB_SIZE     nSize;
+   HB_BOOL     fLeftAlign, fForceSign, fPadZero, fSpaceSign, fSign, fTab;
+
+   pFmt = hb_itemGetCPtr( pItemFormat );
+   nSize = hb_itemGetCLen( pItemFormat );
+   pFmtEnd = pFmt + nSize;
+
+   buffer.nMax = nSize + 16;
+   buffer.nLen = 0;
+   buffer.pData = ( char * ) hb_xgrab( buffer.nMax );
+   buffer.pData[ 0 ] = '\0';
+
+   iParam = 0;
+   while( pFmt < pFmtEnd )
+   {
+      if( *pFmt != '%' )
+      {
+         bufadd( &buffer, pFmt++, 1 );
+         continue;
+      }
+
+      pFmtSave = pFmt++;
+
+      if( *pFmt == '%' )
+      {
+         bufadd( &buffer, pFmt++, 1 );
+         continue;
+      }
+
+      iWidth = iDec = -1;
+      fLeftAlign = fForceSign = fPadZero = fSpaceSign = 0;
+
+      /* parse parameter number */
+      iParamNo = 0;
+      while( HB_ISDIGIT( *pFmt ) )
+         iParamNo = iParamNo * 10 + *pFmt++ - '0';
+
+      if( iParamNo > 0 && *pFmt == '$' )
+      {
+         pFmt++;
+      }
+      else
+      {
+         iParamNo = -1;
+         pFmt = pFmtSave + 1;
+      }
+
+      /* Parse flags */
+      do
+      {
+         switch( *pFmt )
+         {
+            case '-':
+               fLeftAlign = 1;
+               continue;
+            case '+':
+               fForceSign = 1;
+               continue;
+            case ' ':
+               fSpaceSign = 1;
+               continue;
+            case '0':
+               fPadZero = 1;
+               continue;
+         }
+         break;
+      }
+      while( *++pFmt );
+
+      /* Parse width */
+      if( HB_ISDIGIT( *pFmt ) )
+      {
+         iWidth = 0;
+         while( HB_ISDIGIT( *pFmt ) )
+            iWidth = iWidth * 10 + *pFmt++ - '0';
+      }
+
+      /* Parse decimals */
+      if( *pFmt == '.' )
+      {
+         pFmt++;
+         iDec = 0;
+         if( HB_ISDIGIT( *pFmt ) )
+         {
+            while( HB_ISDIGIT( *pFmt ) )
+               iDec = iDec * 10 + *pFmt++ - '0';
+         }
+      }
+
+      /* Parse specifier */
+      if( *pFmt == 'c' || *pFmt == 'd' || *pFmt == 'x' || *pFmt == 'X' ||
+          *pFmt == 'f' || *pFmt == 's' || *pFmt == 't' )
+      {
+         if( iParamNo == -1 )
+            iParamNo = ++iParam;
+
+         pItem = ( iParamNo > iCount ) ? NULL : pItemArray[ iParamNo - 1 ];
+      }
+      else
+         pItem = NULL;
+
+      switch( *pFmt )
+      {
+         case 'c':
+         {
+            char  buf[ 1 ];
+
+            buf[ 0 ] = ( char ) hb_itemGetNI( pItem );
+            if( fLeftAlign )
+            {
+               bufadd( &buffer, buf, 1 );
+            }
+            if( iWidth > 1 )
+            {
+               for( i = 1; i < iWidth; i++ )
+                  bufadd( &buffer, " ", 1 );
+            }
+            if( ! fLeftAlign )
+            {
+               bufadd( &buffer, buf, 1 );
+            }
+            break;
+         }
+         case 'd':
+         case 'x':
+         case 'X':
+         {
+            char  * pStr = NULL;
+            const char * pStr2;
+            int   iSize, iExtra;
+
+            fSign = 0;
+            if( pItem && HB_IS_NUMERIC( pItem ) )
+            {
+               iSize = sizeof( HB_MAXINT ) * 3 + 1;
+               pStr2 = pStr = ( char * ) hb_xgrab( iSize + 1 );
+               if( *pFmt == 'd' )
+                  hb_itemStrBuf( pStr, pItem, iSize, 0 );
+               else
+                  hb_itemHexStr( pItem, pStr, *pFmt == 'X' );
+
+               while( *pStr2 == ' ' )
+                  pStr2++;
+               iSize = ( int ) strlen( pStr2 );
+               if( *pStr2 == '-' )
+               {
+                  fSign = 1;
+                  iSize--;
+                  pStr2++;
+               }
+            }
+            else if( pItem && HB_IS_LOGICAL( pItem ) )
+            {
+               iSize = 1;
+               if( hb_itemGetL( pItem ) )
+                  pStr2 = "1";
+               else
+                  pStr2 = "0";
+            }
+            else
+            {
+               iSize = 1;
+               pStr2 = "0";
+            }
+
+            iExtra = 0;
+            if( fForceSign || fSpaceSign || fSign )
+               iExtra = 1;
+
+            /* If decimals is set, zero padding flag is ignored */
+            if( iDec >= 0 )
+               fPadZero = 0;
+
+            if( fLeftAlign )
+            {
+               /* Zero padding is ignored on left Align */
+               /* ForceSign has priority over SpaceSign */
+               if( fSign )
+                  bufadd( &buffer, "-", 1 );
+               else if( fForceSign )
+                  bufadd( &buffer, "+", 1 );
+               else if( fSpaceSign )
+                  bufadd( &buffer, " ", 1 );
+
+               for( i = iSize; i < iDec; i++ )
+                  bufadd( &buffer, "0", 1 );
+
+               bufadd( &buffer, pStr2, ( HB_SIZE ) iSize );
+               if( iDec > iSize )
+                  iSize = iDec;
+               for( i = iSize + iExtra; i < iWidth; i++ )
+                  bufadd( &buffer, " ", 1 );
+            }
+            else
+            {
+               /* Right align */
+               if( fPadZero )
+               {
+                  /* ForceSign has priority over SpaceSign */
+                  if( fSign )
+                     bufadd( &buffer, "-", 1 );
+                  else if( fForceSign )
+                     bufadd( &buffer, "+", 1 );
+                  else if( fSpaceSign )
+                     bufadd( &buffer, " ", 1 );
+
+                  for( i = iSize + iExtra; i < iWidth; i++ )
+                     bufadd( &buffer, "0", 1 );
+
+                  bufadd( &buffer, pStr2, strlen( pStr2 ) );
+               }
+               else
+               {
+                  for( i = ( iSize > iDec ? iSize : iDec ) + iExtra; i < iWidth; i++ )
+                     bufadd( &buffer, " ", 1 );
+
+                  /* ForceSign has priority over SpaceSign */
+                  if( fSign )
+                     bufadd( &buffer, "-", 1 );
+                  else if( fForceSign )
+                     bufadd( &buffer, "+", 1 );
+                  else if( fSpaceSign )
+                     bufadd( &buffer, " ", 1 );
+
+                  for( i = iSize; i < iDec; i++ )
+                     bufadd( &buffer, "0", 1 );
+
+                  bufadd( &buffer, pStr2, ( HB_SIZE ) iSize );
+               }
+            }
+
+            if( pStr )
+               hb_xfree( pStr );
+            break;
+         }
+
+         case 'f':
+         {
+            char  * pStr = NULL;
+            const char * pStr2;
+            int   iSize, iExtra, iD;
+
+            if( pItem && HB_IS_NUMERIC( pItem ) )
+            {
+               hb_itemGetNLen( pItem, &iSize, &iD );
+
+               if( iDec != -1 )
+               {
+                  iSize += iDec - iD + 1;
+                  iD = iDec;
+               }
+
+               /* Let 255 be a limit for number length */
+               if( iSize > 255 )
+                  iSize = 255;
+               if( iD > 253 )
+                  iD = 253;
+               if( iSize < iD + 2 )
+                  iSize = iD + 2;
+
+               pStr2 = pStr = ( char * ) hb_xgrab( iSize + 1 );
+               hb_itemStrBuf( pStr, pItem, iSize, iD );
+
+               if( pStr[ 0 ] == '*' && iSize < 255 )
+               {
+                  pStr2 = pStr = ( char * ) hb_xrealloc( pStr, 256 );
+                  hb_itemStrBuf( pStr, pItem, 255, iD );
+               }
+               while( *pStr2 == ' ' )
+                  pStr2++;
+               iSize = ( int ) strlen( pStr2 );
+            }
+            else
+            {
+               iSize = 1;
+               pStr2 = "0";
+            }
+
+            iExtra = 0;
+            if( ( fForceSign || fSpaceSign ) && *pStr2 != '-' )
+               iExtra = 1;
+
+            if( fLeftAlign )
+            {
+               /* Zero padding is ignored on left Align */
+               if( *pStr2 != '-' )
+               {
+                  /* ForceSign has priority over SpaceSign */
+                  if( fForceSign )
+                     bufadd( &buffer, "+", 1 );
+                  else
+                  {
+                     if( fSpaceSign )
+                        bufadd( &buffer, " ", 1 );
+                  }
+               }
+               bufadd( &buffer, pStr2, ( HB_SIZE ) iSize );
+               for( i = iSize + iExtra; i < iWidth; i++ )
+                  bufadd( &buffer, " ", 1 );
+            }
+            else
+            {
+               /* Right align */
+               if( fPadZero )
+               {
+                  if( *pStr2 == '-' )
+                  {
+                     bufadd( &buffer, pStr2++, 1 );
+                  }
+                  else
+                  {
+                     /* ForceSign has priority over SpaceSign */
+                     if( fForceSign )
+                        bufadd( &buffer, "+", 1 );
+                     else
+                     {
+                        if( fSpaceSign )
+                           bufadd( &buffer, " ", 1 );
+                     }
+                  }
+                  for( i = iSize + iExtra; i < iWidth; i++ )
+                     bufadd( &buffer, "0", 1 );
+
+                  bufadd( &buffer, pStr2, strlen( pStr2 ) );
+               }
+               else
+               {
+                  for( i = iSize + iExtra; i < iWidth; i++ )
+                     bufadd( &buffer, " ", 1 );
+
+                  if( *pStr2 != '-' )
+                  {
+                     /* ForceSign has priority over SpaceSign */
+                     if( fForceSign )
+                        bufadd( &buffer, "+", 1 );
+                     else
+                     {
+                        if( fSpaceSign )
+                           bufadd( &buffer, " ", 1 );
+                     }
+                  }
+                  bufadd( &buffer, pStr2, ( HB_SIZE ) iSize );
+               }
+            }
+
+            if( pStr )
+               hb_xfree( pStr );
+            break;
+         }
+
+         case 't': //27.07.2021
+         {
+            if( pItem && HB_IS_NUMERIC( pItem ) )
+            {
+               const char * pStr = NULL;
+               HB_ISIZ nSize = hb_itemGetNS( pItem );
+               //printf("%d", nSize);
+               if( nSize > 0 )
+                  for( i = 0; i < nSize; i++ )
+                     bufadd( &buffer, " ", 1 );
+            }
+            break;
+         }
+
+         case 's':
+         {
+            const char * pStr = hb_itemGetCPtr( pItem );
+
+            nSize = hb_itemGetCLen( pItem );
+            if( iDec >= 0 )
+            {
+               if( ( HB_SIZE ) iDec < nSize )
+                  nSize = iDec;
+            }
+            if( fLeftAlign )
+               bufadd( &buffer, pStr, nSize );
+
+            if( iWidth > 1 )
+            {
+               for( i = ( int ) nSize; i < iWidth; i++ )
+                  bufadd( &buffer, " ", 1 );
+            }
+
+            if( ! fLeftAlign )
+               bufadd( &buffer, pStr, nSize );
+
+            break;
+         }
+
+         default:
+         {
+            bufadd( &buffer, pFmtSave, pFmt - pFmtSave );
+            continue;
+         }
+      }
+      pFmt++;
+   }
+
+   pItemReturn = hb_itemPutCL( pItemReturn, buffer.pData, buffer.nLen );
+   hb_xfree( buffer.pData );
+   return pItemReturn;
+}
+
+HB_FUNC( HB_STRFORMAT )
+{
+   PHB_ITEM pFormat = hb_param( 1, HB_IT_STRING );
+
+   if( pFormat )
+   {
+      int        iParams = hb_pcount();
+      PHB_ITEM * pItemArray = NULL;
+
+      if( iParams > 1 )
+      {
+         int i;
+         pItemArray = ( PHB_ITEM * ) hb_xgrab( ( iParams - 1 ) * sizeof( PHB_ITEM ) );
+         for( i = 1; i < iParams; i++ )
+            pItemArray[ i - 1 ] = hb_param( i + 1, HB_IT_ANY );
+      }
+
+      hb_itemReturnRelease( hb_strFormat( NULL, pFormat, iParams - 1, pItemArray ) );
+
+      if( iParams > 1 )
+         hb_xfree( pItemArray );
+   }
+   else
+      hb_errRT_BASE_SubstR( EG_ARG, 1099, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
+}
+
+/*
+function main()
+   a := Array(10)
+   afill(a, "VILMAR")
+   ? hb_strformat("%s %t %s", "ITEM", 8, "VALOR")
+   ? hb_strformat("%s", Repl("=",20))
+   for i := 1 to Len(a)
+      ? hb_strformat("%05d%t%s", i, 8, a[i] + '-' + StrZero(i, 5))
+  next
+*/
+
+/*
+ * The Console API
+ * hb/src/rtl/console.c
+ */
+
+#include "hbapi.h"
+#include "hbapicdp.h"
+#include "hbapiitm.h"
+#include "hbapifs.h"
+#include "hbapierr.h"
+#include "hbapigt.h"
+#include "hbstack.h"
+#include "hbset.h"
+#include "hb_io.h"
+
+#if defined( HB_OS_WIN )
+   #include <windows.h>
+   #if defined( HB_OS_WIN_CE )
+      #include "hbwince.h"
+   #endif
+#endif
+
+/* NOTE: Some C compilers like Borland C optimize the call of small static buffers
+ *       into an integer to read it faster. Later, programs like CodeGuard
+ *       complain if the given buffer was smaller than an int. [ckedem]
+ */
+
+/* length of buffer for CR/LF characters */
+#if ! defined( HB_OS_EOL_LEN ) || HB_OS_EOL_LEN < 4
+#  define CRLF_BUFFER_LEN  4
+#else
+#  define CRLF_BUFFER_LEN  HB_OS_EOL_LEN + 1
+#endif
+
+static const char s_szCR[] = { HB_CHAR_CR, 0 };
+static const char s_szLF[] = { HB_CHAR_LF, 0 };
+static const char s_szCRLF[] = { HB_CHAR_CR, HB_CHAR_LF, 0 };
+
+#if defined( HB_OS_UNIX ) && ! defined( HB_EOL_CRLF )
+   static const char * s_szEOL = s_szLF;
+   static const int s_iEOLLen = 1;
+#else
+   static const char * s_szEOL = s_szCRLF;
+   static const int s_iEOLLen = 2;
+#endif
+
+static HB_FHANDLE s_hFilenoStdin  = ( HB_FHANDLE ) HB_STDIN_HANDLE;
+static HB_FHANDLE s_hFilenoStdout = ( HB_FHANDLE ) HB_STDOUT_HANDLE;
+static HB_FHANDLE s_hFilenoStderr = ( HB_FHANDLE ) HB_STDERR_HANDLE;
+
+typedef struct
+{
+   int row;
+   int col;
+} HB_PRNPOS, * PHB_PRNPOS;
+
+static HB_TSD_NEW( s_prnPos, sizeof( HB_PRNPOS ), NULL, NULL );
+
+static PHB_PRNPOS hb_prnPos( void )
+{
+   return ( PHB_PRNPOS ) hb_stackGetTSD( &s_prnPos );
+}
+
+void hb_conInit( void )
+{
+   HB_TRACE( HB_TR_DEBUG, ( "hb_conInit()" ) );
+
+#if ! defined( HB_OS_WIN )
+   /* On Windows file handles with numbers 0, 1, 2 are
+      translated inside filesys to:
+      GetStdHandle( STD_INPUT_HANDLE ), GetStdHandle( STD_OUTPUT_HANDLE ),
+      GetStdHandle( STD_ERROR_HANDLE ) */
+
+   s_hFilenoStdin  = fileno( stdin );
+   s_hFilenoStdout = fileno( stdout );
+   s_hFilenoStderr = fileno( stderr );
+
+#endif
+
+#ifdef HB_CLP_UNDOC
+   {
+      /* Undocumented CA-Cl*pper switch //STDERR:x */
+      int iStderr = hb_cmdargNum( "STDERR" );
+
+      if( iStderr == 0 || iStderr == 1 )  /* //STDERR with no parameter or 0 */
+         s_hFilenoStderr = s_hFilenoStdout;
+      /* disabled in default builds. It's not multi-platform and very
+       * dangerous because it can redirect error messages to data files
+       * [druzus]
+       */
+#ifdef HB_CLP_STRICT
+      else if( iStderr > 0 ) /* //STDERR:x */
+         s_hFilenoStderr = ( HB_FHANDLE ) iStderr;
+#endif
+   }
+#endif
+
+   /*
+    * Some compilers open stdout and stderr in text mode, but
+    * Harbour needs them to be open in binary mode.
+    */
+   hb_fsSetDevMode( s_hFilenoStdin,  FD_BINARY );
+   hb_fsSetDevMode( s_hFilenoStdout, FD_BINARY );
+   hb_fsSetDevMode( s_hFilenoStderr, FD_BINARY );
+
+   if( hb_gtInit( s_hFilenoStdin, s_hFilenoStdout, s_hFilenoStderr ) != HB_SUCCESS )
+      hb_errInternal( 9995, "Harbour terminal (GT) initialization failure", NULL, NULL );
+
+   if( hb_cmdargCheck( "INFO" ) )
+   {
+      hb_conOutErr( hb_gtVersion( 1 ), 0 );
+      hb_conOutErr( hb_conNewLine(), 0 );
+   }
+}
+
+void hb_conRelease( void )
+{
+   HB_TRACE( HB_TR_DEBUG, ( "hb_conRelease()" ) );
+
+   /*
+    * Clipper does not restore screen size on exit so I removed the code with:
+    *    hb_gtSetMode( s_originalMaxRow + 1, s_originalMaxCol + 1 );
+    * If the low-level GT drive change some video adapter parameters which
+    * have to be restored on exit then it should does it in its Exit()
+    * method. Here we cannot force any actions because it may cause bad
+    * results in some GTs, e.g. when the screen size is controlled by remote
+    * user and not Harbour application (some terminal modes), [Druzus]
+    */
+
+   hb_gtExit();
+
+   hb_fsSetDevMode( s_hFilenoStdin,  FD_TEXT );
+   hb_fsSetDevMode( s_hFilenoStdout, FD_TEXT );
+   hb_fsSetDevMode( s_hFilenoStderr, FD_TEXT );
+}
+
+const char * hb_conNewLine( void )
+{
+   HB_TRACE( HB_TR_DEBUG, ( "hb_conNewLine()" ) );
+
+   return s_szEOL;
+}
+
+HB_FUNC( HB_EOL )
+{
+   hb_retc_const( s_szEOL );
+}
+
+#if defined( HB_LEGACY_LEVEL4 )
+
+/* Deprecated */
+HB_FUNC( HB_OSNEWLINE )
+{
+   hb_retc_const( s_szEOL );
+}
+
+#endif
+
+HB_FUNC( HB_STREOL )
+{
+   HB_SIZE nLen = hb_parclen( 1 );
+
+   HB_SIZE nCR = 0;
+   HB_SIZE nLF = 0;
+
+   const char * szEOL = s_szEOL;
+
+   if( nLen > 0 )
+   {
+      const char * szText = hb_parc( 1 );
+
+      do
+      {
+         switch( *szText++ )
+         {
+         case HB_CHAR_CR:
+            ++nCR;
+            break;
+         case HB_CHAR_LF:
+            ++nLF;
+            break;
+         }
+      }
+      while( --nLen );
+
+      if( nLF )
+      {
+         if( nCR == 0 )
+            szEOL = s_szLF;
+         else if( nCR == nLF )
+            szEOL = s_szCRLF;
+      }
+      else if( nCR )
+         szEOL = s_szCR;
+   }
+
+   hb_retc_const( szEOL );
+}
+
+/* Output an item to STDOUT */
+void hb_conOutStd( const char * szStr, HB_SIZE nLen )
+{
+   HB_TRACE( HB_TR_DEBUG, ( "hb_conOutStd(%s, %" HB_PFS "u)", szStr, nLen ) );
+
+   if( nLen == 0 )
+      nLen = strlen( szStr );
+
+   if( nLen > 0 )
+      hb_gtOutStd( szStr, nLen );
+}
+
+/* Output an item to STDERR */
+void hb_conOutErr( const char * szStr, HB_SIZE nLen )
+{
+   HB_TRACE( HB_TR_DEBUG, ( "hb_conOutErr(%s, %" HB_PFS "u)", szStr, nLen ) );
+
+   if( nLen == 0 )
+      nLen = strlen( szStr );
+
+   if( nLen > 0 )
+      hb_gtOutErr( szStr, nLen );
+}
+
+/* Output an item to the screen and/or printer and/or alternate */
+void hb_conOutAlt( const char * szStr, HB_SIZE nLen )
+{
+   PHB_FILE pFile;
+
+   HB_TRACE( HB_TR_DEBUG, ( "hb_conOutAlt(%s, %" HB_PFS "u)", szStr, nLen ) );
+
+   if( hb_setGetConsole() )
+      hb_gtWriteCon( szStr, nLen );
+
+   if( hb_setGetAlternate() && ( pFile = hb_setGetAltHan() ) != NULL )
+   {
+      /* Print to alternate file if SET ALTERNATE ON and valid alternate file */
+      hb_fileWrite( pFile, szStr, nLen, -1 );
+   }
+
+   if( ( pFile = hb_setGetExtraHan() ) != NULL )
+   {
+      /* Print to extra file if valid alternate file */
+      hb_fileWrite( pFile, szStr, nLen, -1 );
+   }
+
+   if( ( pFile = hb_setGetPrinterHandle( HB_SET_PRN_CON ) ) != NULL )
+   {
+      /* Print to printer if SET PRINTER ON and valid printer file */
+      hb_fileWrite( pFile, szStr, nLen, -1 );
+      hb_prnPos()->col += ( int ) nLen;
+   }
+}
+
+/* Output an item to the screen and/or printer */
+static void hb_conOutDev( const char * szStr, HB_SIZE nLen )
+{
+   PHB_FILE pFile;
+
+   HB_TRACE( HB_TR_DEBUG, ( "hb_conOutDev(%s, %" HB_PFS "u)", szStr, nLen ) );
+
+   if( ( pFile = hb_setGetPrinterHandle( HB_SET_PRN_DEV ) ) != NULL )
+   {
+      /* Display to printer if SET DEVICE TO PRINTER and valid printer file */
+      hb_fileWrite( pFile, szStr, nLen, -1 );
+      hb_prnPos()->col += ( int ) nLen;
+   }
+   else
+      /* Otherwise, display to console */
+      hb_gtWrite( szStr, nLen );
+}
+
+static char * hb_itemStringCon( PHB_ITEM pItem, HB_SIZE * pnLen, HB_BOOL * pfFreeReq )
+{
+   /* logical values in device output (not console, stdout or stderr) are
+      shown as single letter */
+   if( HB_IS_LOGICAL( pItem ) )
+   {
+      *pnLen = 1;
+      *pfFreeReq = HB_FALSE;
+      return ( char * ) ( hb_itemGetL( pItem ) ? "T" : "F" );
+   }
+   return hb_itemString( pItem, pnLen, pfFreeReq );
+}
+
+HB_FUNC( OUTSTD ) /* writes a list of values to the standard output device */
+{
+   int iPCount = hb_pcount(), iParam;
+
+   for( iParam = 1; iParam <= iPCount; iParam++ )
+   {
+      char * pszString;
+      HB_SIZE nLen;
+      HB_BOOL fFree;
+
+      if( iParam > 1 )
+         hb_conOutStd( " ", 1 );
+      pszString = hb_itemString( hb_param( iParam, HB_IT_ANY ), &nLen, &fFree );
+      if( nLen )
+         hb_conOutStd( pszString, nLen );
+      if( fFree )
+         hb_xfree( pszString );
+   }
+}
+
+HB_FUNC( OUTERR ) /* writes a list of values to the standard error device */
+{
+   int iPCount = hb_pcount(), iParam;
+
+   for( iParam = 1; iParam <= iPCount; iParam++ )
+   {
+      char * pszString;
+      HB_SIZE nLen;
+      HB_BOOL fFree;
+
+      if( iParam > 1 )
+         hb_conOutErr( " ", 1 );
+      pszString = hb_itemString( hb_param( iParam, HB_IT_ANY ), &nLen, &fFree );
+      if( nLen )
+         hb_conOutErr( pszString, nLen );
+      if( fFree )
+         hb_xfree( pszString );
+   }
+}
+
+HB_FUNC( QQOUT ) /* writes a list of values to the current device (screen or printer) and is affected by SET ALTERNATE */
+{
+   int iPCount = hb_pcount(), iParam;
+
+   for( iParam = 1; iParam <= iPCount; iParam++ )
+   {
+      char * pszString;
+      HB_SIZE nLen;
+      HB_BOOL fFree;
+
+      if( iParam > 1 )
+         hb_conOutAlt( " ", 1 );
+      pszString = hb_itemString( hb_param( iParam, HB_IT_ANY ), &nLen, &fFree );
+      if( nLen )
+         hb_conOutAlt( pszString, nLen );
+      if( fFree )
+         hb_xfree( pszString );
+   }
+}
+
+HB_FUNC( QOUT )
+{
+   PHB_FILE pFile;
+
+   hb_conOutAlt( s_szEOL, s_iEOLLen );
+
+   if( ( pFile = hb_setGetPrinterHandle( HB_SET_PRN_CON ) ) != NULL )
+   {
+      PHB_PRNPOS pPrnPos = hb_prnPos();
+
+      pPrnPos->row++;
+      pPrnPos->col = hb_setGetMargin();
+
+      if( pPrnPos->col )
+      {
+         char buf[ 256 ];
+
+         if( pPrnPos->col > ( int ) sizeof( buf ) )
+         {
+            char * pBuf = ( char * ) hb_xgrab( pPrnPos->col );
+            memset( pBuf, ' ', pPrnPos->col );
+            hb_fileWrite( pFile, pBuf, ( HB_USHORT ) pPrnPos->col, -1 );
+            hb_xfree( pBuf );
+         }
+         else
+         {
+            memset( buf, ' ', pPrnPos->col );
+            hb_fileWrite( pFile, buf, ( HB_USHORT ) pPrnPos->col, -1 );
+         }
+      }
+   }
+
+   HB_FUNC_EXEC( QQOUT );
+}
+
+HB_FUNC( __EJECT ) /* Ejects the current page from the printer */
+{
+   PHB_PRNPOS pPrnPos;
+   PHB_FILE pFile;
+
+   if( ( pFile = hb_setGetPrinterHandle( HB_SET_PRN_ANY ) ) != NULL )
+   {
+      static const char s_szEop[ 4 ] = { 0x0C, 0x0D, 0x00, 0x00 }; /* Buffer is 4 bytes to make CodeGuard happy */
+      hb_fileWrite( pFile, s_szEop, 2, -1 );
+   }
+
+   pPrnPos = hb_prnPos();
+   pPrnPos->row = pPrnPos->col = 0;
+}
+
+HB_FUNC( PROW ) /* Returns the current printer row position */
+{
+   hb_retni( ( int ) hb_prnPos()->row );
+}
+
+HB_FUNC( PCOL ) /* Returns the current printer row position */
+{
+   hb_retni( ( int ) hb_prnPos()->col );
+}
+
+static void hb_conDevPos( int iRow, int iCol )
+{
+   PHB_FILE pFile;
+
+   HB_TRACE( HB_TR_DEBUG, ( "hb_conDevPos(%d, %d)", iRow, iCol ) );
+
+   /* Position printer if SET DEVICE TO PRINTER and valid printer file
+      otherwise position console */
+
+   if( ( pFile = hb_setGetPrinterHandle( HB_SET_PRN_DEV ) ) != NULL )
+   {
+      int iPRow = iRow;
+      int iPCol = iCol + hb_setGetMargin();
+      PHB_PRNPOS pPrnPos = hb_prnPos();
+
+      if( pPrnPos->row != iPRow || pPrnPos->col != iPCol )
+      {
+         char buf[ 256 ];
+         int iPtr = 0;
+
+         if( pPrnPos->row != iPRow )
+         {
+            if( ++pPrnPos->row > iPRow )
+            {
+               memcpy( &buf[ iPtr ], "\x0C\x0D\x00\x00", 2 );  /* Source buffer is 4 bytes to make CodeGuard happy */
+               iPtr += 2;
+               pPrnPos->row = 0;
+            }
+            else
+            {
+               memcpy( &buf[ iPtr ], s_szEOL, s_iEOLLen );
+               iPtr += s_iEOLLen;
+            }
+
+            while( pPrnPos->row < iPRow )
+            {
+               if( iPtr + s_iEOLLen > ( int ) sizeof( buf ) )
+               {
+                  hb_fileWrite( pFile, buf, ( HB_USHORT ) iPtr, -1 );
+                  iPtr = 0;
+               }
+               memcpy( &buf[ iPtr ], s_szEOL, s_iEOLLen );
+               iPtr += s_iEOLLen;
+               ++pPrnPos->row;
+            }
+            pPrnPos->col = 0;
+         }
+         else if( pPrnPos->col > iPCol )
+         {
+            buf[ iPtr++ ] = '\x0D';
+            pPrnPos->col = 0;
+         }
+
+         while( pPrnPos->col < iPCol )
+         {
+            if( iPtr == ( int ) sizeof( buf ) )
+            {
+               hb_fileWrite( pFile, buf, ( HB_USHORT ) iPtr, -1 );
+               iPtr = 0;
+            }
+            buf[ iPtr++ ] = ' ';
+            ++pPrnPos->col;
+         }
+
+         if( iPtr )
+            hb_fileWrite( pFile, buf, ( HB_USHORT ) iPtr, -1 );
+      }
+   }
+   else
+      hb_gtSetPos( iRow, iCol );
+}
+
+/* NOTE: This should be placed after the hb_conDevPos() definition. */
+
+HB_FUNC( DEVPOS ) /* Sets the screen and/or printer position */
+{
+   if( HB_ISNUM( 1 ) && HB_ISNUM( 2 ) )
+      hb_conDevPos( hb_parni( 1 ), hb_parni( 2 ) );
+
+#if defined( HB_CLP_UNDOC )
+   /* NOTE: Both 5.2e and 5.3 does that, while the documentation
+            says it will return NIL. [vszakats] */
+   hb_itemReturn( hb_param( 1, HB_IT_ANY ) );
+#endif
+}
+
+HB_FUNC( SETPRC ) /* Sets the current printer row and column positions */
+{
+   if( hb_pcount() == 2 && HB_ISNUM( 1 ) && HB_ISNUM( 2 ) )
+   {
+      PHB_PRNPOS pPrnPos = hb_prnPos();
+      pPrnPos->row = hb_parni( 1 );
+      pPrnPos->col = hb_parni( 2 );
+   }
+}
+
+HB_FUNC( DEVOUT ) /* writes a single value to the current device (screen or printer), but is not affected by SET ALTERNATE */
+{
+   char * pszString;
+   HB_SIZE nLen;
+   HB_BOOL fFree;
+
+   if( HB_ISCHAR( 2 ) )
+   {
+      char szOldColor[ HB_CLRSTR_LEN ];
+
+      hb_gtGetColorStr( szOldColor );
+      hb_gtSetColorStr( hb_parc( 2 ) );
+
+      pszString = hb_itemStringCon( hb_param( 1, HB_IT_ANY ), &nLen, &fFree );
+      if( nLen )
+         hb_conOutDev( pszString, nLen );
+      if( fFree )
+         hb_xfree( pszString );
+
+      hb_gtSetColorStr( szOldColor );
+   }
+   else if( hb_pcount() >= 1 )
+   {
+      pszString = hb_itemStringCon( hb_param( 1, HB_IT_ANY ), &nLen, &fFree );
+      if( nLen )
+         hb_conOutDev( pszString, nLen );
+      if( fFree )
+         hb_xfree( pszString );
+   }
+}
+
+HB_FUNC( DISPOUT ) /* writes a single value to the screen, but is not affected by SET ALTERNATE */
+{
+   char * pszString;
+   HB_SIZE nLen;
+   HB_BOOL bFreeReq;
+
+   if( HB_ISCHAR( 2 ) )
+   {
+      char szOldColor[ HB_CLRSTR_LEN ];
+
+      hb_gtGetColorStr( szOldColor );
+      hb_gtSetColorStr( hb_parc( 2 ) );
+
+      pszString = hb_itemStringCon( hb_param( 1, HB_IT_ANY ), &nLen, &bFreeReq );
+
+      hb_gtWrite( pszString, nLen );
+
+      if( bFreeReq )
+         hb_xfree( pszString );
+
+      hb_gtSetColorStr( szOldColor );
+   }
+   else if( hb_pcount() >= 1 )
+   {
+      pszString = hb_itemStringCon( hb_param( 1, HB_IT_ANY ), &nLen, &bFreeReq );
+
+      hb_gtWrite( pszString, nLen );
+
+      if( bFreeReq )
+         hb_xfree( pszString );
+   }
+}
+
+/* Undocumented Clipper function */
+
+/* NOTE: Clipper does no checks about the screen positions. [vszakats] */
+
+HB_FUNC( DISPOUTAT )  /* writes a single value to the screen at specific position, but is not affected by SET ALTERNATE */
+{
+   char * pszString;
+   HB_SIZE nLen;
+   HB_BOOL bFreeReq;
+
+   if( HB_ISCHAR( 4 ) )
+   {
+      char szOldColor[ HB_CLRSTR_LEN ];
+
+      hb_gtGetColorStr( szOldColor );
+      hb_gtSetColorStr( hb_parc( 4 ) );
+
+      pszString = hb_itemStringCon( hb_param( 3, HB_IT_ANY ), &nLen, &bFreeReq );
+
+      hb_gtWriteAt( hb_parni( 1 ), hb_parni( 2 ), pszString, nLen );
+
+      if( bFreeReq )
+         hb_xfree( pszString );
+
+      hb_gtSetColorStr( szOldColor );
+   }
+   else if( hb_pcount() >= 3 )
+   {
+      pszString = hb_itemStringCon( hb_param( 3, HB_IT_ANY ), &nLen, &bFreeReq );
+
+      hb_gtWriteAt( hb_parni( 1 ), hb_parni( 2 ), pszString, nLen );
+
+      if( bFreeReq )
+         hb_xfree( pszString );
+   }
+}
+
+/* Harbour extension, works like DispOutAt() but does not change cursor position */
+
+HB_FUNC( HB_DISPOUTAT )
+{
+   if( hb_pcount() >= 3 )
+   {
+      char * pszString;
+      HB_SIZE nLen;
+      HB_BOOL bFreeReq;
+      int iColor;
+
+      pszString = hb_itemStringCon( hb_param( 3, HB_IT_ANY ), &nLen, &bFreeReq );
+
+      if( HB_ISCHAR( 4 ) )
+         iColor = hb_gtColorToN( hb_parc( 4 ) );
+      else if( HB_ISNUM( 4 ) )
+         iColor = hb_parni( 4 );
+      else
+         iColor = -1;
+
+      hb_gtPutText( hb_parni( 1 ), hb_parni( 2 ), pszString, nLen, iColor );
+
+      if( bFreeReq )
+         hb_xfree( pszString );
+   }
+}
+
+/* Same as hb_DispOutAt(), but draws with the attribute HB_GT_ATTR_BOX,
+   so we can use it to draw graphical elements. */
+HB_FUNC( HB_DISPOUTATBOX )
+{
+   HB_SIZE nLen = hb_parclen( 3 );
+
+   if( nLen > 0 )
+   {
+      int iRow = hb_parni( 1 );
+      int iCol = hb_parni( 2 );
+      const char * pszString = hb_parc( 3 );
+      int iColor;
+      PHB_CODEPAGE cdp;
+      HB_SIZE nIndex = 0;
+      HB_WCHAR wc;
+
+      if( HB_ISCHAR( 4 ) )
+         iColor = hb_gtColorToN( hb_parc( 4 ) );
+      else if( HB_ISNUM( 4 ) )
+         iColor = hb_parni( 4 );
+      else
+         iColor = hb_gtGetCurrColor();
+
+      cdp = hb_gtBoxCP();
+
+      while( HB_CDPCHAR_GET( cdp, pszString, nLen, &nIndex, &wc ) )
+         hb_gtPutChar( iRow, iCol++, iColor, HB_GT_ATTR_BOX, wc );
+
+      hb_gtFlush();
+   }
+}
+
+HB_FUNC( HB_GETSTDIN ) /* Return handle for STDIN */
+{
+   hb_retnint( ( HB_NHANDLE ) s_hFilenoStdin );
+}
+
+HB_FUNC( HB_GETSTDOUT ) /* Return handle for STDOUT */
+{
+   hb_retnint( ( HB_NHANDLE ) s_hFilenoStdout );
+}
+
+HB_FUNC( HB_GETSTDERR ) /* Return handle for STDERR */
+{
+   hb_retnint( ( HB_NHANDLE ) s_hFilenoStderr );
+}
+
+/*
+ * The CodePages API
+*/
+
+#include "hbapi.h"
+#include "hbapiitm.h"
+#include "hbapierr.h"
+#include "hbapicdp.h"
+#include "hbapifs.h"
+#include "hbapigt.h"
+#include "hbstack.h"
+#include "hbset.h"
+#include "hb_io.h"
+
+HB_FUNC( HB_CDPSELECT )
+{
+   const char * id = hb_parc( 1 );
+
+   hb_retc( hb_cdpID() );
+
+   if( id )
+      hb_cdpSelectID( id );
+}
+
+HB_FUNC( HB_CDPEXISTS )
+{
+   const char * id = hb_parc( 1 );
+
+   if( id )
+      hb_retl( hb_cdpFind( id ) != NULL );
+   else
+      hb_errRT_BASE_SubstR( EG_ARG, 3012, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
+}
+
+HB_FUNC( HB_CDPUNIID )
+{
+   const char * id = hb_parc( 1 );
+   PHB_CODEPAGE cdp = id ? hb_cdpFindExt( id ) : hb_vmCDP();
+
+   hb_retc( cdp ? cdp->uniTable->uniID : NULL );
+}
+
+HB_FUNC( HB_CDPINFO )
+{
+   const char * id = hb_parc( 1 );
+   PHB_CODEPAGE cdp = id ? hb_cdpFindExt( id ) : hb_vmCDP();
+
+   hb_retc( cdp ? cdp->info : NULL );
+}
+
+HB_FUNC( HB_CDPISCHARIDX )
+{
+   const char * id = hb_parc( 1 );
+   PHB_CODEPAGE cdp = id ? hb_cdpFindExt( id ) : hb_vmCDP();
+   HB_BOOL fResult = HB_FALSE;
+
+   if( cdp )
+   {
+      fResult = HB_CDP_ISCHARIDX( cdp );
+      if( HB_CDP_ISCUSTOM( cdp ) && HB_ISLOG( 2 ) )
+      {
+         if( hb_parl( 2 ) )
+            cdp->type |= HB_CDP_TYPE_CHARIDX;
+         else
+            cdp->type &= ~HB_CDP_TYPE_CHARIDX;
+      }
+   }
+   hb_retl( fResult );
+}
+
+HB_FUNC( HB_CDPCHARMAX )
+{
+   hb_retnl( ( 1 << ( ( int ) ( hb_cdpIsUTF8( hb_cdpFindExt( hb_parc( 1 ) ) ) ? sizeof( HB_WCHAR ) : sizeof( HB_UCHAR ) ) * 8 ) ) - 1 );
+}
+
+HB_FUNC( HB_CDPISUTF8 )
+{
+   hb_retl( hb_cdpIsUTF8( hb_cdpFindExt( hb_parc( 1 ) ) ) );
+}
+
+HB_FUNC( HB_CDPLIST )
+{
+   const char ** list = hb_cdpList();
+   HB_ISIZ nPos;
+
+   nPos = 0;
+   while( list[ nPos ] )
+      ++nPos;
+
+   hb_reta( nPos );
+
+   nPos = 0;
+   while( list[ nPos ] )
+   {
+      hb_storvc( list[ nPos ], -1, nPos + 1 );
+      ++nPos;
+   }
+
+   hb_xfree( ( void * ) list );
+}
+
+/* NOTE: CA-Cl*pper 5.2e Intl. will return: "NATSORT v1.2i x14 19/Mar/93" */
+/* NOTE: CA-Cl*pper 5.3  Intl. will return: "NATSORT v1.3i x19 06/Mar/95" */
+HB_FUNC_TRANSLATE( __NATSORTVER, HB_CDPINFO )
+
+/*
+ * extended CP PRG functions
+ */
+HB_FUNC( HB_TRANSLATE )
+{
+   HB_SIZE nLen = hb_parclen( 1 );
+   const char * szIdIn = hb_parc( 2 );
+   const char * szIdOut = hb_parc( 3 );
+
+   if( nLen && ( szIdIn || szIdOut ) )
+   {
+      PHB_CODEPAGE cdpIn = szIdIn ? hb_cdpFindExt( szIdIn ) : hb_vmCDP();
+      PHB_CODEPAGE cdpOut = szIdOut ? hb_cdpFindExt( szIdOut ) : hb_vmCDP();
+
+      if( cdpIn && cdpOut && cdpIn != cdpOut &&
+          ( cdpIn->uniTable != cdpOut->uniTable ||
+            HB_CDP_ISCUSTOM( cdpIn ) ||
+            HB_CDP_ISCUSTOM( cdpOut ) ) )
+      {
+         char * szResult = hb_cdpnDup( hb_parc( 1 ), &nLen, cdpIn, cdpOut );
+         hb_retclen_buffer( szResult, nLen );
+      }
+      else
+         hb_itemReturn( hb_param( 1, HB_IT_STRING ) );
+   }
+   else
+      hb_retc_null();
+}
+
+HB_FUNC( HB_STRTOUTF8 )
+{
+   HB_SIZE nLen = hb_parclen( 1 ), nDest = 0;
+   char * szDest = NULL;
+
+   if( nLen )
+   {
+      const char * szCP = hb_parc( 2 );
+      PHB_CODEPAGE cdp = szCP ? hb_cdpFindExt( szCP ) : hb_vmCDP();
+
+      if( cdp )
+      {
+         if( hb_cdpIsUTF8( cdp ) )
+         {
+            hb_itemReturn( hb_param( 1, HB_IT_STRING ) );
+            return;
+         }
+         else
+         {
+            const char * szString = hb_parc( 1 );
+            nDest = hb_cdpStrAsUTF8Len( cdp, szString, nLen, 0 );
+            szDest = ( char * ) hb_xgrab( nDest + 1 );
+            hb_cdpStrToUTF8( cdp, szString, nLen, szDest, nDest + 1 );
+         }
+      }
+   }
+   if( szDest )
+      hb_retclen_buffer( szDest, nDest );
+   else
+      hb_retc_null();
+}
+
+HB_FUNC( HB_UTF8TOSTR )
+{
+   const char *szString = hb_parc(1);;
+   const char *pFmt;
+   PHB_ITEM pItem = hb_param(1, HB_IT_ANY);
+   pFmt           = hb_itemGetCPtr( pItem );
+   HB_SIZE nLen;
+   HB_BOOL fFree;
+   
+   if( HB_ISCHAR(1)){
+      szString = hb_parc(1);
+   }
+   else
+   {
+      if( HB_IS_NUMERIC(pItem))
+      {
+         PHB_ITEM pNumber = hb_param(1, HB_IT_NUMERIC );
+         PHB_ITEM pWidth  = NULL;
+         PHB_ITEM pDec    = NULL;
+         char *szResult   = hb_itemStr( pNumber, pWidth, pDec ); 
+         if( szResult )
+            hb_retc_buffer( szResult );
+         else
+         {
+            hb_retc_null();
+            hb_errRT_BASE_SubstR( EG_ARG, 3012, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
+         }
+         return;
+      }
+   }
+   
+   if( szString )
+   {
+      HB_SIZE nLen = hb_parclen( 1 ), nDest = 0;
+      char * szDest = NULL;
+
+      if( nLen )
+      {
+         const char * szCP = hb_parc( 2 );
+         PHB_CODEPAGE cdp = szCP ? hb_cdpFindExt( szCP ) : hb_vmCDP();
+
+         if( cdp )
+         {
+            if( hb_cdpIsUTF8( cdp ) )
+            {
+               hb_itemReturn( hb_param( 1, HB_IT_STRING ) );
+               return;
+            }
+            else
+            {
+               szString = hb_parc( 1 );
+               nDest = hb_cdpUTF8AsStrLen( cdp, szString, nLen, 0 );
+               szDest = ( char * ) hb_xgrab( nDest + 1 );
+               hb_cdpUTF8ToStr( cdp, szString, nLen, szDest, nDest + 1 );
+            }
+         }
+      }
+
+      if( szDest )
+         hb_retclen_buffer( szDest, nDest );
+      else
+         hb_retc_null();
+   }
+   else
+      hb_errRT_BASE_SubstR( EG_ARG, 3012, NULL, HB_ERR_FUNCNAME, HB_ERR_ARGS_BASEPARAMS );
+}
+
+//==================================================================================================
+
+/*
+static int iQuitRequested = 0;
+static int iLastSignal = 0;
+
+static void sig_handler( int iSigNo )
+{
+   iLastSignal = iSigNo;
+   hb_vmRequestQuit();
+   return;
+}
+
+HB_FUNC( HB_LASTSIGNAL )
+{
+   hb_retni( iLastSignal );
+}
+
+HB_FUNC( HB_SETSIGNALS )
+{
+   struct sigaction act;
+   int iSignals[] = { SIGTERM, SIGHUP, SIGQUIT, SIGINT, 0 }, i;
+
+   signal(SIGPIPE, SIG_IGN);
+
+   for( i = 0; iSignals[i]; ++i )
+   {
+      sigaction( iSignals[i], 0, &act );
+      act.sa_handler = sig_handler;
+      act.sa_flags = SA_RESTART;
+      sigaction( iSignals[i], &act, 0);
+   }
+}
+*/

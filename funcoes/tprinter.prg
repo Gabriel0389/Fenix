@@ -1,3 +1,12 @@
+*
+* Tprinter Class
+*
+* Macrosoft SCI Class Tprinter
+*       (c) 1991-2021 Macrosoft Informatica Ltda
+* Copyright 1991-2021 Vilmar Catafesta <vcatafesta@gmail.com>
+*
+* ░░░▒▒▓▓▓███
+*
 #include <fenix.ch>
 
 #define WIN_PRINTERLIST_PRINTERNAME     1
@@ -8,12 +17,12 @@
 #define WIN_PRINTERLIST_SERVERNAME      6                                                                                                                                       
 
 CLASS TPrinter
-    Export:		  
+    Export:
         DATA RowPrn	  INIT 0
 		  DATA Pagina	  INIT 0
 		  DATA Tamanho   INIT 80
 		  DATA NomeFirma INIT oAmbiente:xFanta
-        DATA Sistema   INIT "Macrosoft NOME DO PROGRAMA"
+        DATA Sistema   INIT "Macrosoft APP"
 		  DATA Titulo	  INIT "TITULO DO RELATORIO"
 		  DATA Cabecalho INIT "CODIGO DESCRICAO"
 		  DATA Separador INIT "="
@@ -29,7 +38,7 @@ CLASS TPrinter
         method    PrintOn()
         method    PrintOff()
         method    AbreSpooler()        
-        method    FPrint(cString)
+        method    PPrint(cString)
         method    CloseSpooler()
         method    CupsArrayPrinter()
         method    Instru80()        
@@ -62,7 +71,7 @@ Method Inicio() class TPrinter
 		
 Method EJect() class TPrinter
 	::RowPrn := 0
-   __Eject()
+   PEject()
 	SetPrc(0,0)
    return self
    
@@ -203,7 +212,7 @@ endmethod
 
 method PrintOff() class TPrinter
 	::PrintOn( true )
-	::FPrint( RESETA )
+	::PPrint( RESETA )
 	Set Devi To Screen
 	Set Prin Off
 	Set Cons On
@@ -218,7 +227,7 @@ method AbreSpooler() class TPrinter
 	return NULL
 endmethod
 
-method FPrint( cString ) class TPrinter
+method PPrint( cString ) class TPrinter
 **************************
    return( DevOut( cString ))
 endmethod
@@ -263,7 +272,7 @@ method CloseSpooler() class TPrinter
             oMenu:Limpa()
             oMenu:StatInf()
             oMenu:StatReg("IMPRESSO #" + StrZero( oAmbiente:nRegistrosImpressos, 7))
-            M_Title( "ESC - Retorna �Setas CIMA/BAIXO Move")
+            M_Title( "ESC - Retorna │Setas CIMA/BAIXO Move")
             M_View( 00, 00, MaxRow()-1, MaxCol(), cTemp, Cor())
             //ShellRun("NOTEPAD " + cTemp )
             ResTela( cScreen )
@@ -322,7 +331,7 @@ method PrintOn(lFechaSpooler) class TPrinter
 		endif
 	endif
 	Set Print On
-	::FPrint( RESETA )
+	::PPrint( RESETA )
 	::SetPrc(0,0)
 	return Nil
 endmethod
@@ -376,7 +385,7 @@ method LptOk() class TPrinter
 			cMsg += " (TENTAR).                                               "
 			cMsg += ";3)Ao escolher a opcao (IMPRIMIR ASSIM MESMO) podera haver"
 			cMsg += "   um travamento completo do sistema.                    "
-			cMsg += ";4)Escolha (RETORNAR) para cancelar a impress�o.          "
+			cMsg += ";4)Escolha (RETORNAR) para cancelar a impressão.          "
 			
 	if lMaluco 
 		return( lMaluco)
@@ -444,8 +453,8 @@ method RetPrinterStatus()
       Aadd( aStatus, nStatus )
    next
    return aStatus
-endef      
-   
-Function TPrinterNew()
+endef
+
+function TPrinterNew()
 *********************
-return( TPrinter():New())
+	return( TPrinter():New())

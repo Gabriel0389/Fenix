@@ -1,4 +1,9 @@
 ﻿#include "fenix.ch"
+#ifdef __PLATFORM__WINDOWS
+   #DEFINE __SEP "\"
+#else
+   #DEFINE __SEP "/"
+#endif
 
 REQUEST SIXCDX
 REQUEST HB_CODEPAGE_PT850
@@ -8,39 +13,67 @@ REQUEST HB_CODEPAGE_UTF8
 REQUEST HB_LANG_EN
 REQUEST HB_LANG_PT
 static s_hMutex
-public XNOMEFIR
-public SISTEM_NA2
 
 init def Main(...)
-******************
+*----------------*
    LOCAL oPull
-   Public Logfan		:= spac(4)
-   Public CT_cli 	   := ' '
-   Public cdtr 	   := ' '
-   Public rcb_V 	   := ' '
-   Public psb 		   := ' '
-   Public l9 		   := ' '
-   Public rt 		   := ' '
-   Public saibx 	   := ' '
-   Public cbc 		   := ' '
-   Public gerbol 	   := ' '
-   Public z 			:= ' '
-   Public fat 			:= ' '
+	public hSys			:= THashNew()
 	public oAmbiente	:= TAmbiente():New()
 	public oMenu     	:= oAmbiente
 	public oIni		  	:= TIniNew("fenix.ini")
 	public oIndice	  	:= TIndiceNew()
    public oPrinter   := TPrinterNew()
-   
-	hb_langSelect( "pt" )
+   public hsPos      := Enum({"Left" => poLeft, "Center" => poCenter, "Right" => poRight, "Top" => poTop, "Bottom" => poBottom})
+	public XNOMEFIR	:= oMenu:Nomefirma
+	public SISTEM_NA2	:= oMenu:StatusSup
+	SetKey( TECLA_ALTC, {|| Encerra() })
+
+	#ifdef __PLATFORM__WINDOWS
+		oMenu:StatusSup	:= "Fenix for Windows v0.1"
+	#else
+		oMenu:StatusSup	:= "Fenix for Linux v0.1"
+	#endif
+   hSys:Logfan			:= Space(4)
+   hSys:CT_cli 	   := ' '
+   hSys:cdtr 	   	:= ' '
+   hSys:rcb_V 	   	:= ' '
+   hSys:psb 		   := ' '
+   hSys:l9 		   	:= ' '
+   hSys:rt 		   	:= ' '
+   hSys:saibx 	   	:= ' '
+   hSys:cbc 		   := ' '
+   hSys:gerbol 	   := ' '
+   hSys:z 				:= ' '
+   hSysfat 				:= ' '
+	hSys:XNOMEFIR		:= oMenu:Nomefirma
+	hSys:SISTEM_NA2	:= oMenu:StatusSup
+   hSys:cBaseDados	:= oAmbiente:xBase + __SEP + "data" + __SEP
+   hSys:aDbfs 			:= ArrayBancoDeDados()
+	hSys:Unidade      := 'C'
+   hSys:Terminal     := ''
+   hSys:Comp         := upper(NetName())
+   hSys:Estacao      := upper(NetName())
+   hSys:nMUser       := ''
+   hSys:Usuario      := ''
+   hSys:Date 			:= Date()
+   hSys:Dif  			:= Date()
+	oMenu:StatusInf 	+= AllTrim(hSys:Estacao)
+	oMenu:StatusInf 	+= "|"
+	oMenu:StatusInf 	+= Upper(StrTrim(oAmbiente:xBase))
+
+	hb_langSelect("pt")
+   RddSetDefault(RDDNAME)
+
+	xInfo()
 	oMenu:Limpa()
   	SetaAmbiente()
-   RddSetDefault( RDDNAME )
-	ArrayBancoDeDados()
+	Set Defa To (hSys:cBaseDados)
+   fchdir(hSys:cBaseDados )
+   oAmbiente:xBase := hSys:cBaseDados
    CriaArquivo()
 	if !VerIndice()
-		Alert("ERRO Tente mais tarde.")
-		FChDir( oAmbiente:xBase )
+		AlertaPy("ERRO Tente mais tarde.")
+		FChDir(oAmbiente:xBase)
 		SalvaMem()
 		SetMode(oAmbiente:AlturaFonteDefaultWindows, oAmbiente:LarguraFonteDefaultWindows)
 		Cls
@@ -50,751 +83,77 @@ init def Main(...)
 	UsaArquivo()
 	//Abrearea()
    oMenu:Limpa()
+	SeekDataSys()
 	login()
 	SetaIni()
-	#ifdef __PLATFORM__WINDOWS
-		oMenu:StatusSup 	:= "Fenix for Windows v0.1"
-	#else
-		oMenu:StatusSup 	:= "Fenix for Linux v0.1"
-	#endif
-	oMenu:StatusInf 	+= AllTrim(oMenu:Comp)
-	oMenu:StatusInf 	+= "|"
-	oMenu:StatusInf 	+= Upper(StrTrim(oAmbiente:xBase))
-	XNOMEFIR 		 	:= oMenu:Nomefirma	
-	SISTEM_NA2			:= oMenu:StatusSup
-
-	Area("dad_nfen")
-   locate for dad_nfen->X = Space(1)
-   if dad_nfen->(!eof())
-      Alerta('Existe contra-nota pendente para serem emitidas')
-   end
-
-	Area("cadadm")
-   if oMenu:Comp = "SERVIDOR"
-   	if CadAdm->(Travareg())
-			CadAdm->DataSis := Date()
-			CadAdm->(Libera())
-		end
-   else
-      locate for date() = datasis
-      if eof()
-         TONE(200,5)
-         ALERT("ATENCAO !!!;Data do Sistema Incorreta !;Voce nao pode acessar.", , "W+/B")
-         quit
-      end
-   end
-   Date := Date()
-   Dif  := Date()
+	SeekContraNota()
    SetColor("")
 	oPull := Monta_Menu()
 	while true
 		BEGIN Sequence
 			oMenu:Limpa()
-			while MenuModal( oPull, 01, 00, MaxCol(), MaxCol(), "w+/b" ) != 999 ;  enddo			
+			while MenuModal( oPull, 01, 00, MaxCol(), MaxCol(), "w+/b" ) != 999 ;  enddo
 		Recover
 			oPull := Monta_Menu()
 			//FechaTudo()
 		FINALLY
-	enddo	
+	enddo
 	Encerra()
 endef
 
-def Monta_Menu()
-   local oTopBar, oPopUp, oPopUp1, oPopUp2, oPopUp3, oItem, oItem1, oItem2
-   local cCorBar  := "b*/w,w+/bg,b*/w,w+/bg,b*/w,b*/w"
-   local cCorItem := "w+/bg,b*/w,w+/bg,b*/w,w/bg,w+/bg"
-	local nResult  := 0
+*==============================================================================================================================
+fn F_Fim( Texto )
+   LOCAL nSig       := 0 // HB_LASTSIGNAL()
+   LOCAL obj
+   LOCAL cMicrobras := oAmbiente:xProgramador
 
-   oTopBar           := TopBar( 01,00 , MaxCol())
-   oTopBar:ColorSpec := cCorBar
+   hb_default(@Texto, "MICROBRAS")
+   SetColor("")
+   Cls
+   ? 'EXITING, Sinal=', nSig
+   DbCloseAll()
 
-*----------
-*SAIR
-*----------	
-	oPopUp            := PopUp()
-   oPopUp :ColorSpec := cCorItem
-   oTopBar:AddItem(MenuItem( "&Sair", oPopUp,,))
-	   oPopUp2           := PopUp()
-      oPopUp2:ColorSpec := cCorItem
-      oItem             := MenuItem( "&Encerrar execucao do sistema", {|| Encerra(@nResult) } , K_ALT_F4,, 999)
-      oPopUp:AddItem( oItem )
-
-*=============================================================================================================================*
-* CADASTROS
-*=============================================================================================================================*
-
-   oPopUp           := PopUp()
-   oPopUp:ColorSpec := cCorItem
-   oTopBar:AddItem( MenuItem ( "&Cadastros", oPopUp, ,) )
-
-   oItem := MenuItem( "&Clientes" , {|| ClientesInclusao() } ,101)
-   oPopUp:AddItem( oItem )
-   if Yclicad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Fornecedores" ,{|| cadasfor() })
-   oPopUp:AddItem( oItem )
-   if Yforcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Merc./Suprimento" ,{|| Alert("merc.suprim...()") })
-   oPopUp:AddItem( oItem )
-   if Ymercad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Produtos" ,{|| Alert("Produtos()") })
-   oPopUp:AddItem( oItem )
-   if Yprocad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oPopUp:AddItem( MenuItem( MENU_SEPARATOR ) )
-
-	oItem :=MenuItem( "Representantes", {|| RepresentanteInclusao() })
-   oPopUp:AddItem( oItem )
-   if Yrepcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Transportadoras", {|| Alert("Transportadoras()") })
-   oPopUp:AddItem( oItem )
-   if Ytracad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oPopUp:AddItem( MenuItem( MENU_SEPARATOR ) )
-
-   oItem :=MenuItem( "Municipios", {|| Alert("municipios()") })
-   oPopUp:AddItem( oItem )
-   if Ymuncad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Cfop" ,{|| Alert("CFOP()") })
-   oPopUp:AddItem( oItem )
-   if Ycfocad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Estado/ICMS", {|| UfInclusao() })
-   oPopUp:AddItem( oItem )
-   if Yestcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "CEST", {|| Alert("cest()") })
-   oPopUp:AddItem( oItem )
-   if Ycescad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oPopUp:AddItem( MenuItem( MENU_SEPARATOR ) )
-
-   oItem :=MenuItem( "Codigo de Barras", {|| Alert("CODB BAR()") })
-   oPopUp:AddItem( oItem )
-   if Ycdbcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Clas.Suprimentos", {|| Alert("suprimentos()") })
-   oPopUp:AddItem( oItem )
-   if Yclacad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Embalagens", {|| Alert("Embalgens()") })
-   oPopUp:AddItem( oItem )
-   if Yembcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-	
-	oItem :=MenuItem( "Cep", {|| CepInclusao() })
-   oPopUp:AddItem( oItem )
-   if Yembcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
+   if nSig # 0
+      obj:=getactive()
+      if obj#NIL
+         obj:undo()
+      endif
+      ? 'KILL'
+      ?
+      // here I put other tasks useful only for my program... like free user session etc... also depending from the signal no.
    endif
+   hb_threadTerminateAll()
+   Alert( Texto + ";;Copyright (C)1992," + Str(Year(Date()),4) + ";" + cMicrobras + ";;Todos Direitos;Reservados", "W+/G")
+   return
+endfn
 
-*=============================================================================================================================*
-* ALTERACAO
-*=============================================================================================================================*
+*==============================================================================================================================
 
-   oPopUp := PopUp()
-   oPopUp :ColorSpec:= cCorItem
-   oTopBar:AddItem( MenuItem ( "&Alteracao", oPopUp, ,) )
-
-   oItem := MenuItem( "&Clientes" , {|| ClientesDbedit() } ,101)
-   oPopUp:AddItem( oItem )
-   if Yclicad = 'B'
-      oItem:Enabled := .f.
+def SeekDataSys()
+	Area("CADADM")
+   if hSys:Estacao == hSys:Comp //"SERVIDOR"
+   	if CadAdm->(Travareg())
+			CadAdm->DataSis := Date()
+			CadAdm->(Libera())
+		endif
    else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Fornecedores" ,{|| nil })
-   oPopUp:AddItem( oItem )
-   if Yforcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Merc./Suprimento" ,{|| Alert("merc.suprim...()") })
-   oPopUp:AddItem( oItem )
-   if Ymercad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Produtos" ,{|| Alert("Produtos()") })
-   oPopUp:AddItem( oItem )
-   if Yprocad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oPopUp:AddItem( MenuItem( MENU_SEPARATOR ) )
-
-   oItem :=MenuItem( "Representantes", {|| RepresentanteInclusao(true) })
-   oPopUp:AddItem( oItem )
-   if Yrepcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Transportadoras", {|| Alert("Transportadoras()") })
-   oPopUp:AddItem( oItem )
-   if Ytracad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oPopUp:AddItem( MenuItem( MENU_SEPARATOR ) )
-
-   oItem :=MenuItem( "Municipios", {|| Alert("municipios()") })
-   oPopUp:AddItem( oItem )
-   if Ymuncad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Cfop" ,{|| Alert("CFOP()") })
-   oPopUp:AddItem( oItem )
-   if Ycfocad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Estado/ICMS", {|| UfDbEdit() })
-   oPopUp:AddItem( oItem )
-   if Yestcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "CEST", {|| Alert("cest()") })
-   oPopUp:AddItem( oItem )
-   if Ycescad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oPopUp:AddItem( MenuItem( MENU_SEPARATOR ) )
-
-   oItem :=MenuItem( "Codigo de Barras", {|| Alert("CODB BAR()") })
-   oPopUp:AddItem( oItem )
-   if Ycdbcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Clas.Suprimentos", {|| Alert("suprimentos()") })
-   oPopUp:AddItem( oItem )
-   if Yclacad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Embalagens", {|| Alert("Embalgens()") })
-   oPopUp:AddItem( oItem )
-   if Yembcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endif
-	
-	oItem :=MenuItem( "Cep", {|| CepInclusao(true) })
-   oPopUp:AddItem( oItem )
-   if Yembcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endif	
-
-*=============================================================================================================================*
-* CONSULTA
-*=============================================================================================================================*
-
-   oPopUp := PopUp()
-   oPopUp :ColorSpec:= cCorItem
-   oTopBar:AddItem( MenuItem ( "&Consulta", oPopUp, ,) )
-
-   oItem := MenuItem( "&Clientes" , {|| ClientesDbedit() } ,101)
-   oPopUp:AddItem( oItem )
-   if Yclicad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Fornecedores" ,{|| nil })
-   oPopUp:AddItem( oItem )
-   if Yforcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Merc./Suprimento" ,{|| Alert("merc.suprim...()") })
-   oPopUp:AddItem( oItem )
-   if Ymercad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Produtos" ,{|| Alert("Produtos()") })
-   oPopUp:AddItem( oItem )
-   if Yprocad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oPopUp:AddItem( MenuItem( MENU_SEPARATOR ) )
-
-   oItem :=MenuItem( "Representantes", {|| RepresentanteInclusao(true) })
-   oPopUp:AddItem( oItem )
-   if Yrepcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Transportadoras", {|| Alert("Transportadoras()") })
-   oPopUp:AddItem( oItem )
-   if Ytracad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oPopUp:AddItem( MenuItem( MENU_SEPARATOR ) )
-
-   oItem :=MenuItem( "Municipios", {|| Alert("municipios()") })
-   oPopUp:AddItem( oItem )
-   if Ymuncad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Cfop" ,{|| Alert("CFOP()") })
-   oPopUp:AddItem( oItem )
-   if Ycfocad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Estado/ICMS", {|| UfDbEdit() })
-   oPopUp:AddItem( oItem )
-   if Yestcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "CEST", {|| Alert("cest()") })
-   oPopUp:AddItem( oItem )
-   if Ycescad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oPopUp:AddItem( MenuItem( MENU_SEPARATOR ) )
-
-   oItem :=MenuItem( "Codigo de Barras", {|| Alert("CODB BAR()") })
-   oPopUp:AddItem( oItem )
-   if Ycdbcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Clas.Suprimentos", {|| Alert("suprimentos()") })
-   oPopUp:AddItem( oItem )
-   if Yclacad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Embalagens", {|| Alert("Embalgens()") })
-   oPopUp:AddItem( oItem )
-   if Yembcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-*=============================================================================================================================*
-* IMPRESSAO
-*=============================================================================================================================*
-
-   oPopUp := PopUp()
-   oPopUp :ColorSpec:= cCorItem
-   oTopBar:AddItem( MenuItem ( "&Impressao", oPopUp, ,) )
-
-   oItem := MenuItem( "&Clientes" , {|| LstCli() } ,101)
-   oPopUp:AddItem( oItem )
-   if Yclicad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Fornecedores" ,{|| nil })
-   oPopUp:AddItem( oItem )
-   if Yforcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Merc./Suprimento" ,{|| Alert("merc.suprim...()") })
-   oPopUp:AddItem( oItem )
-   if Ymercad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Produtos" ,{|| Alert("Produtos()") })
-   oPopUp:AddItem( oItem )
-   if Yprocad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oPopUp:AddItem( MenuItem( MENU_SEPARATOR ) )
-
-   oItem :=MenuItem( "Representantes", {|| Alert("representantes()") })
-   oPopUp:AddItem( oItem )
-   if Yrepcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Transportadoras", {|| Alert("Transportadoras()") })
-   oPopUp:AddItem( oItem )
-   if Ytracad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oPopUp:AddItem( MenuItem( MENU_SEPARATOR ) )
-
-   oItem :=MenuItem( "Municipios", {|| Alert("municipios()") })
-   oPopUp:AddItem( oItem )
-   if Ymuncad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Cfop" ,{|| Alert("CFOP()") })
-   oPopUp:AddItem( oItem )
-   if Ycfocad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "&Estado/ICMS", {|| UfImpressao() })
-   oPopUp:AddItem( oItem )
-   if Yestcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "CEST", {|| Alert("cest()") })
-   oPopUp:AddItem( oItem )
-   if Ycescad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oPopUp:AddItem( MenuItem( MENU_SEPARATOR ) )
-
-   oItem :=MenuItem( "Codigo de Barras", {|| Alert("CODB BAR()") })
-   oPopUp:AddItem( oItem )
-   if Ycdbcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Clas.Suprimentos", {|| Alert("suprimentos()") })
-   oPopUp:AddItem( oItem )
-   if Yclacad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endi
-
-   oItem :=MenuItem( "Embalagens", {|| Alert("Embalgens()") })
-   oPopUp:AddItem( oItem )
-   if Yembcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endif
-	
-	oItem :=MenuItem( "Cep", {|| CepPrint() })
-   oPopUp:AddItem( oItem )
-   if Yembcad = 'B'
-      oItem:Enabled := .f.
-   else
-      oItem:Enabled := .T.
-   endif
-
-
-// VENDAS
-
-   oPopUp           := PopUp()
-   oPopUp:ColorSpec := cCorItem
-   oTopBar:AddItem( MenuItem ( "&Vendas", oPopUp, ,) )
-
-	oPopUp1 := PopUp()
-	oPopUp1 :ColorSpec:= cCorItem
-	oItem := MenuItem( "&Registrar Saida", {|| Alert("vendas()") })
-      oPopUp:AddItem( oItem )
-      if Yvenda = 'B'
-         oItem:Enabled := .f.
-      else
-         oItem:Enabled := .t.
-      endi
-
-      oItem :=MenuItem( "&Baixa", {|| Alert("baixa()") })
-      oPopUp:AddItem( oItem )
-
-      oItem :=MenuItem( "&Corrige", {|| Alert("edita()") })
-      oPopUp:AddItem( oItem )
-
-
-      oPopUp_E := PopUp()
-      oPopUp_E :ColorSpec:= cCorItem
-      oItem := MenuItem( "Estoque",oPopUp_E )
-      oPopUp:AddItem( oItem )
-
-           oItem_E1 := MenuItem( "&Todo Estoque", {|| Alert("estoque()") })
-           oPopUp_E:AddItem( oItem_E1 )
-
-           oItem_E2 := MenuItem( "&Por Produto", {|| Alert("por produto()") })
-           oPopUp_E:AddItem( oItem_E2 )
-
-           oItem_E3 := MenuItem( "&Sistema Kanban", {|| Alert("Kanban()") })
-           oPopUp_E:AddItem( oItem_E3 )
-
-           oPopUp_M := PopUp()
-           oPopUp_M :ColorSpec:= cCorItem
-           oItem_E4 := MenuItem( "&Manipular",oPopUp_M)
-           oPopUp_E:AddItem( oItem_E4 )
-
-              oItem_M1 := MenuItem( "&Gerar Pre-Lote", {|| Alert("prelote()") })
-              oPopUp_M:AddItem( oItem_M1 )
-
-              oItem_M2 := MenuItem( "&Concluir Estoque", {|| Alert("concluir estoque()") })
-              oPopUp_M:AddItem( oItem_M2 )
-
-              oPopUp_M:AddItem( MenuItem( MENU_SEPARATOR ) )
-
-              oItem_M3 := MenuItem( "&Baixar Amostras", {|| Alert("bx amostra()") })
-              oPopUp_M:AddItem( oItem_M3 )
-
-              oItem_M4 := MenuItem( "Controle de &Perdas", {|| Alert("perdas()") })
-              oPopUp_M:AddItem( oItem_M4 )
-
-      oPopUp_L := PopUp()
-      oPopUp_L :ColorSpec:= cCorItem
-      oItem :=MenuItem( "&Listagem", oPopUp_L)
-      oPopUp:AddItem( oItem )
-
-           oItem_L1 := MenuItem( "&Listagem ctas a Receber", {|| Alert("ctas receber()") })
-           oPopUp_L:AddItem( oItem_L1 )
-
-           oItem_L2 := MenuItem( "&Pedidos", {|| Alert("Pedidos()") })
-           oPopUp_L:AddItem( oItem_L2 )
-
-           oItem_L3 := MenuItem( "&Representantes", {|| Alert("Representantes()") })
-           oPopUp_L:AddItem( oItem_L3 )
-
-           oItem_L4 := MenuItem( "&Estoque Representantes", {|| RepresentanteInclusao() })
-           oPopUp_L:AddItem( oItem_L4 )
-
-           oItem_L5 := MenuItem( "P&rotestos", {|| Alert("Protestos...()") })
-           oPopUp_L:AddItem( oItem_L5 )
-
-      oItem :=MenuItem( "&Pesquisa", {|| Alert("Pesquisa()") })
-      oPopUp:AddItem( oItem )
-
-      oItem :=MenuItem( "&Faturamento", {|| Alert("faturamento()") })
-      oPopUp:AddItem( oItem )
-
-      oItem :=MenuItem( "&Devolucoes", {|| Alert("Devolucoes()") })
-      oPopUp:AddItem( oItem )
-
-      oItem :=MenuItem( "Le&mbretes", {|| Alert("Lembretes()") })
-      oPopUp:AddItem( oItem )
-*----------
-*COMPRAS
-*----------
-   oPopUp := PopUp()
-   oPopUp :ColorSpec:= cCorItem
-   oTopBar:AddItem( MenuItem ( "Compras", oPopUp, ,) )
-
-      oPopUp2 := PopUp()
-      oPopUp2 :ColorSpec:= cCorItem
-      oItem := MenuItem( "&Registrar Entrada", {|| Alert("compras()") })
-      oPopUp:AddItem( oItem )
-      if Ycompra = 'B'
-      else
-      endi
-
-
-      oItem :=MenuItem( "&Baixa", {|| Alert("baixa()") })
-      oPopUp:AddItem( oItem )
-
-      oItem :=MenuItem( "&Corrige", {|| Alert("edita()") })
-      oPopUp:AddItem( oItem )
-
-      oPopUp_LC := PopUp()
-      oPopUp_LC :ColorSpec:= cCorItem
-      oItem :=MenuItem( "&Listagem", oPopUp_LC)
-      oPopUp:AddItem( oItem )
-
-           oItem_LC1 := MenuItem( "&Listagem ctas a Pagar", {|| Alert("ctas pagar()") })
-           oPopUp_LC:AddItem( oItem_LC1 )
-
-           oItem_LC2 := MenuItem( "&Pedidos", {|| Alert("Pedidos()") })
-           oPopUp_LC:AddItem( oItem_LC2 )
-
-      oItem :=MenuItem( "&Pesquisa", {|| Alert("Pesquisa()") })
-      oPopUp:AddItem( oItem )
-
-      oItem :=MenuItem( "&Faturamento", {|| Alert("faturamento()") })
-      oPopUp:AddItem( oItem )
-
-      oItem :=MenuItem( "&Registra Vazilhames", {|| Alert("vazilhames()") })
-      oPopUp:AddItem( oItem )
-
-
-	// Ambiente
-	oPopUp := PopUp()
-   oPopUp :ColorSpec:= cCorItem
-   oTopBar:AddItem( MenuItem ( "&Ambiente", oPopUp, ,) )
-
-      oPopUp2 := PopUp()
-      oPopUp2 :ColorSpec:= cCorItem
-      oItem := MenuItem( "&Cor fundo", {|| SetaCor(3) })
-      oPopUp:AddItem( oItem )
-
-      oPopUp2 := PopUp()
-      oPopUp2 :ColorSpec:= cCorItem
-      oItem := MenuItem( "&Pano Fundo", {||xSetaPano()})
-      oPopUp:AddItem( oItem )
-		
-		oPopUp2 := PopUp()
-      oPopUp2 :ColorSpec:= cCorItem
-      oItem := MenuItem( "&Cor Alerta", {|| SetaCor(8) })
-      oPopUp:AddItem( oItem )
-		
-		oPopUp2 := PopUp()
-      oPopUp2 :ColorSpec:= cCorItem
-      oItem := MenuItem( "&Cor Cabecalho", {|| SetaCor(2) })
-      oPopUp:AddItem( oItem )
-
-// Manutencao
-	oPopUp := PopUp()
-   oPopUp :ColorSpec:= cCorItem
-   oTopBar:AddItem( MenuItem ( "&Manutencao", oPopUp, ,) )
-
-      oPopUp2 := PopUp()
-      oPopUp2 :ColorSpec:= cCorItem
-      oItem := MenuItem( "&Reindexar banco de dados", {|| xReindexar()})
-      oPopUp:AddItem( oItem )
-
-*----------
-*SOBRE
-*----------	
-	oPopUp  := PopUp()
-   oPopUp :ColorSpec:= cCorItem
-   oTopBar:AddItem(MenuItem( "&Sobre", oPopUp,,))
-	
-	   oPopUp2 := PopUp()
-      oPopUp2 :ColorSpec:= cCorItem
-      oItem := MenuItem( "&Sobre o sistema", {|| xInfo() })
-      oPopUp:AddItem( oItem )
-	
-	
-   return ( oTopBar )
+     	if CadAdm->DataSis <> Date()
+         ErrorBeep()
+         AlertaPy("ATENCAO !!!;-;Data do sistema está incorreta !;Você deverá corrigir antes de continuar.")
+         Encerra()
+      endif
+	endif
+endef
+
+*==============================================================================================================================
+
+def SeekContraNota()
+	Area("DAD_NFEN")
+   locate for dad_nfen->X1 = Space(1)
+   if dad_nfen->(!eof())
+      AlertaPy('ATENCAO !!!;-;Existe contra-nota pendente para serem emitidas.')
+   end
+   return nil
 endef
 
 def xReindexar()
@@ -804,8 +163,8 @@ def xReindexar()
 		CriaIndice()
 		UsaArquivo()
 	endif
-	return(restela(cScreen))	
-endef	
+	return(restela(cScreen))
+endef
 
 def SetaCor(nCor)
 *****************
@@ -858,24 +217,11 @@ def Encerra(nResult)
 	//oSci:Close()
 
 	F_Fim( "Fenix for Windows" + " " + "v1.0" )
-	SetMode(oAmbiente:AlturaFonteDefaultWindows, oAmbiente:LarguraFonteDefaultWindows)
+//	SetMode(oAmbiente:AlturaFonteDefaultWindows, oAmbiente:LarguraFonteDefaultWindows)
 	Cls
 	DevPos( 24, 0 )
 	return( __Quit())
 endef
-
-
-def F_Fim( Texto )
-***********************
-	LOCAL cMicrobras := oAmbiente:xProgramador
-				  Texto := Iif( Texto = NIL, "MICROBRAS", Texto )
-
-	SetColor("")
-	Cls
-	Alert( Texto + ";;Copyright (C)1992," + Str(Year(Date()),4) + ";" + cMicrobras + ";;Todos Direitos;Reservados", "W+/G")
-	return
-endef
-
 
 def SetaIni()
 	oMenu:Frame 				 := oIni:ReadString( oAmbiente:xUsuario,  'frame',         oAmbiente:Frame )
@@ -984,18 +330,21 @@ endef
 
 def login()
 ***********
-	LOCAL cScreen   := SaveScreen()
-	LOCAL R         := Space(1)
-	LOCAL cLogin    := Space(15)
-	LOCAL cPassword := Space(6)
-	LOCAL SNA       := "168935"
-	
-	Area("usuario")
+	LOCAL GetList	:=	{}
+	LOCAL h			:= THashNew()
+
+	h:cScreen		:= SaveScreen()
+	h:r         	:= Space(1)
+	h:cLogin    	:= Space(15)
+	h:cPassword 	:= Space(6)
+	h:sna       	:= "168935"
+
+	Area("USUARIO")
 	while true
 		MaBox(09, 21, 14, 50, "LOGIN")
-		@ 11,23 say 'Usuario..:' get cLogin    pict "@!" valid UsuarioErrado( @cLogin )
-		@ 12,23 say 'Senha....:' get cPassword pict "@S" valid SenhaErrada( cLogin, cPassword )
-		read
+		@ 11, 23 SAY 'Usuario..:' GET h:cLogin    PICT "@!" VALID UsuarioErrado( @h:cLogin )
+		@ 12, 23 SAY 'Senha....:' GET h:cPassword PICT "@S" VALID SenhaErrada(h:cLogin, @h:cPassword )
+		READ
 		if lastkey() = ESC
 			ErrorBeep()
 			if conf("Pergunta: Deseja encerrar?")
@@ -1003,40 +352,35 @@ def login()
 			end
 			loop
 		end
-      Log           			:= cLogin
-      Sha          		 	:= Sna
-		LogFan        			:= Usuario->CodUsu
+      h:Log           		:= h:cLogin
+      h:Sha          		:= h:Sna
+		h:LogFan        		:= Usuario->CodUsu
 		oAmbiente:xUsuario	:= StrTrim(Usuario->Fantazia)
-		nMuser        			:= oAmbiente:xUsuario
+		h:nMuser        		:= oAmbiente:xUsuario
 		oMenu:Usuario 			:= oAmbiente:xUsuario
 		oPrinter:EscolheImpressoraUsuario()
-	
 		Ctr_User()
 
-		Area("desc")
-		Descto := Desc
+		Area("DESC")
+		h:Descto	:= Desc->Desc
 
-		Area("cadprod") // oMenu:aDbfs[11])
-		CadProd->(DbGoTop())
-
+		Area("CADPROD")
 		if CadProd->(TravaArq())
 			Mensagem("Aguarde, Atualizando valores")
+			CadProd->(DbGoTop())
          while Cadprod->(!Eof())
-				desc_t         := 0
-				des_prc        := 0
-				vpreco         := 0
-				desc_t         := 100-descto
-				des_prc        := desc_t/100
-				vpreco         := precopl/des_prc
-				CadProd->Preco := vPreco
+				h:desc_t       := 100 - h:descto
+				h:des_prc      := h:desc_t / 100
+				h:vpreco       := CadProd->Precopl / h:des_prc
+				CadProd->Preco	:= h:vPreco
 				CadProd->(DbSkip(1))
-			end
-		end
-		CadProd->(Libera())
-		ResTela( cScreen )
+			enddo
+			CadProd->(Libera())
+		endif
+		ResTela(h:cScreen )
 		return nil
 	enddo
-endef	
+endef
 
 def UsuarioErrado( cNome )
 ******************************
@@ -1066,13 +410,12 @@ def UsuarioErrado( cNome )
 endef
 
 def SenhaErrada(cLogin, cPassWord)
-	LOCAL cSenha  := Usuario->( AllTrim( Senha ))
-	LOCAL Passe   := cPassword
+	LOCAL cSenha := Usuario->Senha
 
-	if !Empty( Passe) .AND. cSenha == Passe
-		return true
+	if !Empty( cPassWord) .AND. cSenha == cPassWord
+      return true
 	endif
-	cPassword := Space(6)
+   cPassWord := Space(Len(Usuario->Senha))
 	ErrorBeep()
 	Alert("ERRO: Senha nao confere.")
 	return false
@@ -1122,15 +465,16 @@ def UsuarioCerto( cNome )
 endef
 
 def AbreUsuario()
-	Return( UsaArquivo("usuario") )
+	return( UsaArquivo("usuario") )
 endef
 
 def ErrorSys()
 *--------------*
 	Private ErrorSys := 9876543210
-	ErrorBlock( {|Erro| MacroErro(Erro)} )
-	return
-endef 
+//	ErrorBlock( {|Erro| MacroErro(Erro)} )
+	ErrorBlock( {|Erro| TErroNew(Erro)} )
+	return nil
+endef
 
 def MacroErro(e)
 *********************
@@ -1597,7 +941,7 @@ def xinfo()
 	oMenu:CorCabec := Roloc( oMenu:CorCabec )
 	Info(2)
 endef
-	
+
 def Info(nRow, lInkey)
 *----------------------*
 	LOCAL cScreen	  := SaveScreen( )
@@ -1607,7 +951,7 @@ def Info(nRow, lInkey)
 	LOCAL nMaxCol	  := MaxCol()-3
 	LOCAL cSistema   := StrTran( oMenu:StatusSup, "MENU PRINCIPAL-","")
 	LOCAL nRamLivre  := Memory(0)
-   LOCAL aPrinter   := cupsGetDests()   
+   LOCAL aPrinter   := cupsGetDests()
    LOCAL aMenu      := {}
    LOCAL nPr
 	LOCAL nColor
@@ -1618,8 +962,8 @@ def Info(nRow, lInkey)
 	LOCAL xCidade
 
 	IfNil(nRow, 2)
-	FChDir( oAmbiente:xRoot )	
-	
+	FChDir( oAmbiente:xRoot )
+
 	xMicrobras := ""
 	xEndereco  := ""
 	xTelefone  := ""
@@ -1636,7 +980,7 @@ def Info(nRow, lInkey)
 	Print( nRow+02, 03, "") ; printf(Padc(xMicrobras, nMaxCol-2), AscanCor(clBrightRed))
 	Print( nRow+03, 03, "") ; printf(Padc(xEndereco,  nMaxCol-2), AscanCor(clBrightBlue))
 	Print( nRow+04, 03, "") ; printf(Padc(xTelefone,  nMaxCol-2), AscanCor(clBrightCyan))
-	
+
 	aHost := GetIp()
 	Print( nRow+06, 03, "S. Operacional : ") ; printf(Os(), AscanCor(clBrightYellow))
 	Print( nRow+07, 03, "  Data Sistema : ") ; printf(Date(), AscanCor(clBrightGreen))
@@ -1654,7 +998,7 @@ def Info(nRow, lInkey)
 	//Print( nRow+19, 03, "   Versao Leto : ") ; printf(LETO_GETSERVERVERSION(), AscanCor(clBrightCyan))
 	//Print( nRow+20, 03, "       Leto IP : ") ; printf(LETO_GETCURRENTCONNECTION(), AscanCor(clBrightCyan))
 	Print( nRow+21, 03, "      IP Local : ") ; printf(StrGetIp(), AscanCor(clBrightCyan))
-	
+
 	Print( nRow+06, ((nMaxCol/2)-2), "   Nome Estacao : ") ; printf(AllTrim(Left(NetName(),20)), AscanCor(clBrightYellow))
 	Print( nRow+07, ((nMaxCol/2)-2), "  Horas Sistema : " + Time())	
    Print( nRow+08, ((nMaxCol/2)-2), " Drive Corrente : ") ; printf(AllTrim(Drive), AscanCor(clBrightGreen))   	
@@ -1667,8 +1011,8 @@ def Info(nRow, lInkey)
 	Print( nRow+12, ((nMaxCol/2)-2), "  Path Corrente : " + AllTrim( oAmbiente:xBase ))
 	Print( nRow+13, ((nMaxCol/2)-2), "  Limite Acesso : ") ; printf( oAmbiente:xDataCodigo, AscanCor(clBrightRed))
 	Print( nRow+14, ((nMaxCol/2)-2), "   MultiUsuario : ") ; printf(IF( MULTI, "Habilitado", "Desabilitado"), AscanCor(IF( MULTI, clBrightGreen,clBrightRed)))
-	Print( nRow+15, ((nMaxCol/2)-2), "     Portas LPT : " + IF( FisPrinter("LPT1"), "#1 ","NIL,") + IF( FisPrinter("LPT2"), "#2 ","NIL,") + IF( FisPrinter("LPT3"), "#3 ","NIL,"))
-	Print( nRow+16, ((nMaxCol/2)-2), "     Portas COM : " + IF( FisPrinter("COM1"), "#1 ","NIL,") + IF( FisPrinter("COM2"), "#2 ","NIL,") + IF( FisPrinter("COM3"), "#3 ","NIL,"))
+	Print( nRow+15, ((nMaxCol/2)-2), "     Portas LPT : #1 #2 #3")
+	Print( nRow+16, ((nMaxCol/2)-2), "     Portas COM : #1 #2 #3")
 
    nRow1 := 16   
    /*
@@ -1680,17 +1024,17 @@ def Info(nRow, lInkey)
    
 	IF oAmbiente:Visual
 	  Print( nRow+22, 03, Padc( "Software Licenciado para", nMaxCol-7), AscanCor(clBrightGreen))
-	  Print( nRow+23, 03, Padc( XNOMEFIR, nMaxCol-7 ), AscanCor(clBrightRed))
+	  Print( nRow+23, 03, Padc( hSys:XNOMEFIR, nMaxCol-7 ), AscanCor(clBrightRed))
 	Else
 	  Print( nRow+22, 03, Padc( "Software Licenciado para" , nMaxCol-2), AscanCor(clBrightGreen))
-	  Print( nRow+23, 03, Padc( XNOMEFIR, nMaxCol-2 ), AscanCor(clBrightRed))
-	EndIF	
-		
+	  Print( nRow+23, 03, Padc( hSys:XNOMEFIR, nMaxCol-2 ), AscanCor(clBrightRed))
+	EndIF
+
 	Print( ++nRow, (nMaxCol-30), "< Memoria >", AscanCor(clBrightCyan))
 	Print( ++nRow, (nMaxCol-30), "  MEM_CHAR       : ") ; printf(hb_ntos(Memory(HB_MEM_CHAR       )/1024) + " GB", AscanCor(clBrightRed))
 	Print( ++nRow, (nMaxCol-30), "  MEM_BLOCK      : ") ; printf(hb_ntos(Memory(HB_MEM_BLOCK      )/1024) + " GB", AscanCor(clBrightRed))
 	Print( ++nRow, (nMaxCol-30), "  MEM_RUN        : ") ; printf(hb_ntos(Memory(HB_MEM_RUN        )/1024) + " GB", AscanCor(clBrightRed))
-	++nRow                                                                                 
+	++nRow
 	Print( ++nRow, (nMaxCol-30), "  MEM_VM         : ") ; printf(hb_ntos(Memory(HB_MEM_VM         )/1024) + " GB", AscanCor(clBrightCyan))
 	Print( ++nRow, (nMaxCol-30), "  MEM_EMS        : ") ; printf(hb_ntos(Memory(HB_MEM_EMS        )/1024) + " GB", AscanCor(clBrightCyan))
 	Print( ++nRow, (nMaxCol-30), "  MEM_FM         : ") ; printf(hb_ntos(Memory(HB_MEM_FM         )/1024) + " GB", AscanCor(clBrightCyan))
@@ -1712,22 +1056,22 @@ def Info(nRow, lInkey)
 		SetCursor(0)
 		WaitKey(0)
 	EndIF
-	FChDir( cDiretorio )
-	break
+	FChDir(cDiretorio)
+	return nil
 endef
 
-function StrGetIp()
-*--------------*
+fn StrGetIp()
+*------------*
 	LOCAL cString 	:= ""
 	LOCAL aHost 	:= GetIp()
 	LOCAL nLen     := Len(aHost)
 	LOCAL c
-	
+
 	for each c IN aHost
 		cString += c
-		if nLen >= 2		
+		if nLen >= 2
 			cString += ', '
 		endif
 	next
 	return cString
-	
+endfn

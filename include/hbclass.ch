@@ -459,6 +459,7 @@ DECLARE HBClass ;
    #xcommand CREATE CLASS <ClassName> [<*more*>] => CLASS <ClassName> <more>
    #xcommand END CLASS [<*more*>]   => ENDCLASS <more>
    #xcommand CLASS VAR <*more*>     => CLASSVAR <more>
+   #xcommand PROPERTY <*more*>      => CLASSVAR <more>
    #xcommand CLASS METHOD <*more*>  => CLASSMETHOD <more>
 
    /* Disable the message :Class */
@@ -473,7 +474,7 @@ DECLARE HBClass ;
 
    #xcommand EXPORTED:   =>    nScope := HB_OO_CLSTP_EXPORTED ; HB_SYMBOL_UNUSED( nScope )
    #xcommand EXPORT:     =>    nScope := HB_OO_CLSTP_EXPORTED ; HB_SYMBOL_UNUSED( nScope )
-	#xcommand PUBLIC:     =>    nScope := HB_OO_CLSTP_EXPORTED ; HB_SYMBOL_UNUSED( nScope )
+//	#xcommand PUBLIC:     =>    nScope := HB_OO_CLSTP_EXPORTED ; HB_SYMBOL_UNUSED( nScope )
    #xcommand VISIBLE:    =>    nScope := HB_OO_CLSTP_EXPORTED ; HB_SYMBOL_UNUSED( nScope )
    #xcommand HIDDEN:     =>    nScope := HB_OO_CLSTP_HIDDEN   ; HB_SYMBOL_UNUSED( nScope )
    #xcommand PROTECTED:  =>    nScope := HB_OO_CLSTP_PROTECTED; HB_SYMBOL_UNUSED( nScope )

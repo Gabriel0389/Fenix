@@ -1,3 +1,7 @@
+# diretorio para temporario
+{linux}-workdir=/tmp/.hbmk
+{win}-workdir=c:\lixo\.hbmk
+
 -ofenix
 -inc
 #-compr=yes
@@ -10,27 +14,14 @@
 -b
 
 # linkar com bibliotecas estaticas/compartilhadas
--static
-#-shared
+{win}-static
+{linux}-shared
 
 # path adicional para pesquisa de libs
-{win}-Lc:\fenix\libwin
+{win}-Lc:\github\fenix\libwin
 {linux}-L./liblinux
 
-# diretorio para temporario
-{win}-workdir=c:\lixo
-{linux}-workdir=/tmp
-
-#libs
--lxhb
-{win}-lhbwin
--lhbct
--lhbgt
--lhbnf
--lhbxpp
--lfenix
-
--ldflag=-Wl,--allow-multiple-definition  
+-ldflag=-Wl,--allow-multiple-definition
 -prgflag= -iinclude;
 
 # compilar em C++
@@ -38,13 +29,44 @@
 -cflag= -w0
 
 src\fenix.prg
+src\menu.prg
 src\cadastro.prg
-src\cadasfor.prg
 src\database.prg
 
-hbmisc.hbc
+#libs
+-lfuncoes
+-lpng
+-lhbblink
+-lhbct
+-lhbxpp
+-lxhb
+-lhboslib
+-lhbgt
+{win}-lhbwin
+-lhbnf
+-lhbgzio
+-lhbmemio
+#letodbf novo
+#-lleto
+#{linux}-lrddleto
+
+hbhpdf.hbc
 hbblink.hbc
+hbct.hbc
+hbxpp.hbc
+xhb.hbc
 hboslib.hbc
+hbgt.hbc
+{win}hbwin.hbc
+hbnf.hbc
 hbgzio.hbc
 hbmemio.hbc
+{linux}letodb.hbc
 {linux}hbcups.hbc
+
+hbmzip.hbc
+hbmisc.hbc
+hbnetio.hbc
+rddsql.hbc
+hbmemio.hbc
+#hbsqlit3.hbc

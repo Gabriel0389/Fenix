@@ -339,9 +339,7 @@ PROCEDURE GetApplyKey( oGet, nKey )
 				endif
 			endif
 		endif
-
-		EventState()
-		
+		EventState(oGet)
 	ENDCASE
 	return
 
@@ -789,7 +787,7 @@ FUNCTION GetPsw( oGet )
 							oGet:exitState := GE_ENTER
 						endif
 					endif
-					EventState()
+					EventState(oGet)
 				ENDCASE
 			EndDO
 			cBuffer     := oGet:Buffer
@@ -915,17 +913,17 @@ class Tget from GET
 endclass
 
 *-------------------*
-function EventState()
+function EventState(oGet)
 *-------------------*
 	#include "hbgtinfo.ch"
 	hb_gtInfo( HB_GTI_INKEYFILTER, { | nKey |
 			LOCAL nBits, lIsKeyCtrl
 			SWITCH nKey
-			CASE K_MWBACKWARD			
+			CASE K_MWBACKWARD
 				oGet:exitState := GE_DOWN
 				return K_DOWN
-			CASE K_MWFORWARD				
-				oGet:exitState := GE_UP			
+			CASE K_MWFORWARD
+				oGet:exitState := GE_UP
 				return K_UP
 			CASE K_RBUTTONDOWN
 				return K_ESC
@@ -956,7 +954,7 @@ function EventState()
                   GetActive():DelEnd()
                   return 0
                endif
-            endif	
+            endif
 			CASE K_CTRL_C
 				nBits      := hb_gtInfo( HB_GTI_KBDSHIFTS )
 				lIsKeyCtrl := ( nBits == hb_BitOr( nBits, HB_GTI_KBD_CTRL ) )
@@ -968,7 +966,6 @@ function EventState()
 						return 0
 					endif
 				endif
-				
 			ENDSWITCH
 			return nKey
 		})
@@ -979,4 +976,4 @@ FUNCTION MouseWheelDown()
 
 FUNCTION MouseWheelUp()
    KEYBOARD Chr( K_UP )
-   return NIL		
+   return NIL

@@ -5,7 +5,7 @@ achoice()
 
 function ArrayBancoDeDados()
 ****************************
-	oMenu:aDbfs := {"comp",;
+	hSys:aDbfs := {"comp",;
 					"cadmerc",;
 					"cadadm",;
 					"cadfor",;
@@ -64,7 +64,7 @@ function ArrayBancoDeDados()
 					"vazil",;
 					"sldvaz",;
 					"ctrvaz",;
-					"comcx",; 
+					"comcx",;
 					"comvz",;
 					"regiao",;
 					"cmda",;
@@ -107,7 +107,7 @@ function ArrayBancoDeDados()
 function AbreArea()
 *******************
    LOCAL cScreen := SaveScreen()
-   LOCAL nTam    := Len(oMenu:aDbfs)
+   LOCAL nTam    := Len(hSys:aDbfs)
    LOCAL nX
 	LOCAL cDbf
 
@@ -117,8 +117,8 @@ function AbreArea()
 
 	//rddsetdefault("SIXCDX")
 	for nX := 1 to nTam
-		cDatabase := oMenu:aDbfs[nX]
-		cDbf      := oMenu:aDbfs[nX] + ".dbf"
+		cDatabase := hSys:aDbfs[nX]
+		cDbf      := hSys:aDbfs[nX] + ".dbf"
       if !UsaArquivo(cDatabase)
 	      MensFecha()
 	      return nil
@@ -217,7 +217,7 @@ def UsaArquivo( cArquivo, cAlias )
 	STATI lJahAcessou := FALSO
 	LOCAL cScreen		:= SaveScreen()
 	LOCAL nY 			:= 0
-	LOCAL aArquivos	:= oMenu:aDbfs
+	LOCAL aArquivos	:= hSys:aDbfs
 	LOCAL aIndices 	:= ArrayIndices()
 
 	nTodos	:= Len( aArquivos )
@@ -318,6 +318,7 @@ def Area( cArea)
 ****************
 	DbSelectArea( cArea )
 	return alias()
+endef
 
 *==================================================================================================*
 
@@ -363,9 +364,10 @@ def AbreArquivo( cArquivo )
 
 def ArrayArquivos()
 	LOCAL aArquivos := {}
+
 	Aadd( aArquivos, { "usuario.dbf",;
 	   	{{'ID',     '+', 4, 0 },;
-          {'CODUSU', 'C', 4, 0 },;
+        	 {'CODUSU', 'C', 4, 0 },;
           {'FANTAZIA', 'C', 15, 0 },;
           {'SENHA', 'C', 6, 0 },;
           {'DTCAD', 'D', 8, 0 },;
@@ -416,6 +418,7 @@ def ArrayArquivos()
           {'DPE', 'C', 1, 0 },;
           {'LJA', 'C', 1, 0 },;
           {'FNA', 'C', 1, 0 }}})
+
 
 Aadd( aArquivos, {"abcprod.dbf",;
           {;
@@ -552,6 +555,7 @@ Aadd( aArquivos, {"abcprod.dbf",;
           {'CNPJD', 'C', 18, 0 },;
           {'CPFD', 'C', 14, 0 };
           }})
+
  Aadd( aArquivos, {"bcdesc.dbf",;
           {;
           {'DATA', 'D', 8, 0 },;
@@ -1068,16 +1072,6 @@ Aadd( aArquivos, {"clafisc.dbf",;
           {'NRCMANDA', 'C', 10, 0 };
           }})
  
- Aadd( aArquivos, {"comcx.dbf",;
-          {;
-          {'NRFAT', 	'C', 10, 0 },;
-          {'CODVZ', 	'C', 04, 0 },;
-          {'VAZIL', 	'C', 15, 0 },;
-          {'QDE', 	'N', 07, 2 },;
-          {'X', 		'C', 01, 0 },;
-          {'FN', 		'C', 01, 0 };
-          }})
-
  Aadd( aArquivos, {"comp.dbf",;
           {;
           {'COMP', 'C', 15, 0 },;
@@ -1099,7 +1093,7 @@ Aadd( aArquivos, {"clafisc.dbf",;
           {'QDEVAZ', 'N', 7, 2 },;
           {'CDOPER', 'C', 5, 0 },;
           {'OPER', 'C', 50, 0 },;
-          {'X', 'C', 1, 0 },;
+          {'X1', 'C', 1, 0 },;
           {'SERIE', 'N', 3, 0 },;
           {'NRNOTA', 'N', 9, 0 },;
           {'NFENTRADA', 'N', 9, 0 },;
@@ -1122,7 +1116,7 @@ Aadd( aArquivos, {"clafisc.dbf",;
           {'CODVZ', 'C', 4, 0 },;
           {'VAZIL', 'C', 15, 0 },;
           {'QDE', 'N', 7, 2 },;
-          {'X', 'C', 1, 0 },;
+          {'X1', 'C', 1, 0 },;
           {'FN', 'C', 1, 0 };
           }})
  Aadd( aArquivos, {"contador.dbf",;
@@ -1186,7 +1180,7 @@ Aadd( aArquivos, {"clafisc.dbf",;
           {'OPER', 'C', 50, 0 },;
           {'SERIE', 'N', 3, 0 },;
           {'NRONF', 'N', 9, 0 },;
-          {'X', 'C', 1, 0 },;
+          {'X1', 'C', 1, 0 },;
           {'STRIB', 'C', 3, 0 },;
           {'USUARIO', 'C', 4, 0 };
           }})
@@ -1233,7 +1227,7 @@ Aadd( aArquivos, {"clafisc.dbf",;
           {'STRIB', 'C', 3, 0 },;
           {'SERIE', 'N', 3, 0 },;
           {'NRONF', 'N', 9, 0 },;
-          {'X', 'C', 1, 0 },;
+          {'X1', 'C', 1, 0 },;
           {'VL_FIN', 'N', 14, 7 },;
           {'USUBX', 'C', 4, 0 },;
           {'NROBX', 'C', 12, 0 },;
@@ -1619,7 +1613,7 @@ Aadd( aArquivos, {"clafisc.dbf",;
           {'SERIE', 'N', 3, 0 },;
           {'BS_CALC', 'N', 14, 7 },;
           {'VL_FIN', 'N', 14, 7 },;
-          {'X', 'C', 1, 0 },;
+          {'X1', 'C', 1, 0 },;
           {'DTBAIXA', 'D', 8, 0 };
           }})
  Aadd( aArquivos, {"npd.dbf",;
@@ -1636,7 +1630,7 @@ Aadd( aArquivos, {"clafisc.dbf",;
           {'QDEVAZ', 'N', 7, 2 },;
           {'CDOPER', 'C', 5, 0 },;
           {'OPER', 'C', 50, 0 },;
-          {'X', 'C', 1, 0 },;
+          {'X1', 'C', 1, 0 },;
           {'SERIE', 'N', 3, 0 },;
           {'NRNOTA', 'N', 9, 0 },;
           {'NFENTRADA', 'N', 9, 0 },;
@@ -1667,7 +1661,7 @@ Aadd( aArquivos, {"clafisc.dbf",;
           {'QDEVAZ', 'N', 7, 2 },;
           {'CDOPER', 'C', 5, 0 },;
           {'OPER', 'C', 50, 0 },;
-          {'X', 'C', 1, 0 },;
+          {'X1', 'C', 1, 0 },;
           {'SERIE', 'N', 3, 0 },;
           {'NRNOTA', 'N', 9, 0 },;
           {'NFENTRADA', 'N', 9, 0 },;
@@ -1758,7 +1752,7 @@ Aadd( aArquivos, {"clafisc.dbf",;
           {'CDOPER', 'C', 5, 0 },;
           {'OPER', 'C', 50, 0 },;
           {'NRONF', 'C', 6, 0 },;
-          {'X', 'C', 1, 0 },;
+          {'X1', 'C', 1, 0 },;
           {'BS_CALC', 'N', 14, 7 },;
           {'VL_SUBS', 'N', 14, 7 },;
           {'VL_DESC', 'N', 14, 7 },;
@@ -1941,7 +1935,7 @@ Aadd( aArquivos, {"clafisc.dbf",;
           {'OPER', 'C', 20, 0 },;
           {'SERIE', 'N', 3, 0 },;
           {'NRONF', 'N', 9, 0 },;
-          {'X', 'C', 1, 0 },;
+          {'X1', 'C', 1, 0 },;
           {'FTRA', 'N', 9, 0 },;
           {'STRIB', 'C', 3, 0 },;
           {'USUARIO', 'C', 4, 0 },;
@@ -2065,7 +2059,7 @@ Aadd( aArquivos, {"clafisc.dbf",;
           {'GIMP', 'C', 1, 0 },;
           {'SERIE', 'N', 3, 0 },;
           {'NRONF', 'N', 9, 0 },;
-          {'X', 'C', 1, 0 },;
+          {'X1', 'C', 1, 0 },;
           {'FTRA', 'N', 9, 0 },;
           {'BS_CALC', 'N', 14, 7 },;
           {'VL_SUBS', 'N', 14, 7 },;
@@ -2123,7 +2117,7 @@ Aadd( aArquivos, {"clafisc.dbf",;
           {'OPER', 'C', 20, 0 },;
           {'SERIE', 'N', 3, 0 },;
           {'NRONF', 'N', 9, 0 },;
-          {'X', 'C', 1, 0 },;
+          {'X1', 'C', 1, 0 },;
           {'FTRA', 'N', 9, 0 },;
           {'BS_CALC', 'N', 14, 7 },;
           {'VL_SUBS', 'N', 14, 7 },;
@@ -2179,6 +2173,16 @@ Aadd( aArquivos, { "printer.dbf",;
 											  { "LIGITALIC", "C", 40, 0 },;
 											  { "DESITALIC", "C", 40, 0 },;
 											  { "ATUALIZADO", "D", 08, 0 }}})
+ Aadd( aArquivos, {"comcx.dbf",;
+          {;
+          {'NRFAT', 	'C', 10, 0 },;
+          {'CODVZ', 	'C', 04, 0 },;
+          {'VAZIL', 	'C', 15, 0 },;
+          {'QDE', 	'N', 07, 2 },;
+          {'X1', 		'C', 01, 0 },;
+          {'FN1',		'C', 01, 0 };
+          }})
+
 Return( aArquivos )
 
 *==================================================================================================*
@@ -2243,7 +2247,7 @@ def Integridade(cArquivo, aStru )
 	LOCAL nX
 
 	nConta := Len(aStru)
-	cTela  := Mensagem(" Verificando Integridade do database #: ;-;" + cArquivo)
+  	cTela  := Mensagem(" Verificando Integridade do database #: ;-;" + cArquivo)
 	For nX := 1 To nConta
 		cCampo := aStru[nX,1] // NOME DO CAMPO
 		IF !AchaCampo( aStruct, aStru, nX, cCampo )

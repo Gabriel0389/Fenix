@@ -9,12 +9,16 @@
 #define CUPS_STATUS  4
 #define CUPS_PRINTER 5
 /***************************************************************************************************/
-#define FINALLY 				 	endsequence
-#Define fi         				endif
+#define FINALLY					endsequence
+#Define fi							endif
 #define def							function
+#define fn							function
+#define sub							function
 #Define fed
 #define endef
 #define enddef
+#define endfn
+#define endsub
 #define endmethod
 #define endmethod
 /***************************************************************************************************/
@@ -66,10 +70,12 @@
 #define TECLA_ALT_F4 		  -33
 #define ENABLE 				  .T.
 #define DISABLE				  .F.
+#define CTRL_PGDN					30   
 /******************************************************************************************************/
 #define MAXLINELENGTH 		2048
 #define EOL 					HB_OSNEWLINE()		
 #define _CRLF    				CHR(13) + CHR(10)
+#define CRLF    				CHR(13) + CHR(10)
 #define FALSO     			.F.
 #define OK       			   .T.
 #define LIG                .T.
@@ -198,8 +204,14 @@
 #define XTODOS_DATAPAG_CODI_RIGHT_DOCNR_8_VCTO  22
 #define XTODOS_ID                               23
 #define XTODOS_VLRORIGINA                       24
-/**********************************************************/
-#define clBlack 			    0
+/********* MaBox() ***************************************/
+#define poLeft             1
+#define poCenter           2
+#define poRight            3
+#define poTop              4
+#define poBottom           5
+/*********************************************************/
+#define clBlack             0
 #define clBlue              1
 #define clGreen             2
 #define clCyan              3
@@ -310,8 +322,6 @@
 //#Define  BEGIN 			while( true )
 #Define  BEGOUT         ENDDO
 #endif _DEFINE_CH_
-#define  _CRLF    CHR(13) + CHR(10)
-
 
 //#require "hbwin"
 #define FORM_A4 9
@@ -355,6 +365,7 @@
 #translate isdate			 								=> hb_isdate
 #translate lastrow			 							=> maxrow
 #translate lastcol			 							=> maxcol
+#translate toUtf8                               => hb_UTF8ToStrBox
 
 #xtranslate alltrim(<xValue>)  						=> ltrim(rtrim(<xValue>))
 #translate ifNIL( <var>, <val> )        			=> if( <var> = NIL, <var> := <val>, <var> )
